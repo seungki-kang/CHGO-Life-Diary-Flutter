@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 
 import 'data/life_diary_database.dart';
 import 'data/life_diary_draft_store.dart';
+import 'data/life_diary_entry_factory.dart';
+import 'data/sqlite_life_diary_repository.dart';
 
 final TextInputFormatter keepMyRighteousnessWording =
     TextInputFormatter.withFunction((oldValue, newValue) {
@@ -435,11 +437,38 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
       ),
     );
     if (confirmed != true || !mounted) return;
-    setState(() {
-      stage = 3;
-      currentLifeDiaryDraft.q7FinalCompleted = true;
-    });
+    currentLifeDiaryDraft.q7FinalCompleted = true;
     saveQ7Draft();
+    try {
+      final existingEntries = await lifeDiaryRepository.findByOwner(
+        lifeDiaryEntryFactory.ownerUserId,
+      );
+      final sameDate = existingEntries.where((entry) =>
+          entry.entryDate.year == widget.diaryDate.year &&
+          entry.entryDate.month == widget.diaryDate.month &&
+          entry.entryDate.day == widget.diaryDate.day);
+      final absoluteSession = sameDate.isNotEmpty
+          ? ((sameDate.first.seasonNumber - 1) * 50) +
+              sameDate.first.sessionNumber
+          : existingEntries.length + 1;
+      final entry = lifeDiaryEntryFactory.fromUiDraft(
+        widget.diaryDate,
+        currentLifeDiaryDraft.toJson(),
+        completed: true,
+        seasonNumber: ((absoluteSession - 1) ~/ 50) + 1,
+        sessionNumber: ((absoluteSession - 1) % 50) + 1,
+      );
+      await lifeDiaryRepository.save(entry);
+      if (!mounted) return;
+      setState(() => stage = 3);
+      saveQ7Draft();
+    } catch (error) {
+      currentLifeDiaryDraft.q7FinalCompleted = false;
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('최종 저장에 실패했습니다: $error')),
+      );
+    }
   }
 
   @override
@@ -2523,6 +2552,8 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
 final LifeDiarySessionDraft currentLifeDiaryDraft =
     LifeDiarySessionDraft();
 late final LifeDiaryDraftStore lifeDiaryDraftStore;
+late final SqliteLifeDiaryRepository lifeDiaryRepository;
+final LifeDiaryEntryFactory lifeDiaryEntryFactory = LifeDiaryEntryFactory();
 Future<void> _draftWrite = Future.value();
 
 void persistCurrentLifeDiaryDraft() {
@@ -2628,7 +2659,9 @@ Future<void> showLifeDiaryQuestionNavigator(
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  lifeDiaryDraftStore = LifeDiaryDraftStore(await LifeDiaryDatabase.open());
+  final database = await LifeDiaryDatabase.open();
+  lifeDiaryDraftStore = LifeDiaryDraftStore(database);
+  lifeDiaryRepository = SqliteLifeDiaryRepository(database);
   runApp(const ChgoLifeDiaryApp());
 }
 
