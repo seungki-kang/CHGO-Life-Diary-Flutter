@@ -5,6 +5,7 @@ import 'data/life_diary_database.dart';
 import 'data/life_diary_draft_store.dart';
 import 'data/life_diary_entry_factory.dart';
 import 'data/sqlite_life_diary_repository.dart';
+import 'presentation/life_diary_history_page.dart';
 
 final TextInputFormatter keepMyRighteousnessWording =
     TextInputFormatter.withFunction((oldValue, newValue) {
@@ -2702,7 +2703,7 @@ class LifeDiaryStartPage extends StatelessWidget {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: Center(
+          child: SingleChildScrollView(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -2762,6 +2763,31 @@ class LifeDiaryStartPage extends StatelessWidget {
                     child: const Text(
                       '생명일기 시작',
                       style: TextStyle(fontSize: 18),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => LifeDiaryHistoryPage(
+                            repository: lifeDiaryRepository,
+                            ownerUserId: lifeDiaryEntryFactory.ownerUserId,
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.history),
+                    label: const Text(
+                      '지난 생명일기 보기',
+                      style: TextStyle(fontSize: 17),
                     ),
                   ),
                 ),
