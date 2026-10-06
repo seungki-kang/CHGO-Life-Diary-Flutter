@@ -53,9 +53,7 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('생명일기를 완성하시겠습니까?'),
-        content: const Text(
-          '최종 완성하기 전에 1~7번 기록을 다시 확인하고 자유롭게 수정할 수 있습니다.',
-        ),
+        content: const Text('최종 완성하기 전에 1~7번 기록을 다시 확인하고 자유롭게 수정할 수 있습니다.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
@@ -72,23 +70,12 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
     currentLifeDiaryDraft.q7FinalCompleted = true;
     saveQ7Draft();
     try {
-      final existingEntries = await lifeDiaryRepository.findByOwner(
-        lifeDiaryEntryFactory.ownerUserId,
-      );
-      final sameDate = existingEntries.where((entry) =>
-          entry.entryDate.year == widget.diaryDate.year &&
-          entry.entryDate.month == widget.diaryDate.month &&
-          entry.entryDate.day == widget.diaryDate.day);
-      final absoluteSession = sameDate.isNotEmpty
-          ? ((sameDate.first.seasonNumber - 1) * 50) +
-              sameDate.first.sessionNumber
-          : existingEntries.length + 1;
       final entry = lifeDiaryEntryFactory.fromUiDraft(
         widget.diaryDate,
         currentLifeDiaryDraft.toJson(),
         completed: true,
-        seasonNumber: ((absoluteSession - 1) ~/ 50) + 1,
-        sessionNumber: ((absoluteSession - 1) % 50) + 1,
+        seasonNumber: currentLifeDiaryDraft.seasonNumber,
+        sessionNumber: currentLifeDiaryDraft.sessionNumber,
       );
       await lifeDiaryRepository.save(entry);
       lifeDiaryLogger.info('life_diary.completed_entry_saved', {
@@ -112,9 +99,8 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
         'error_code': error.runtimeType.toString(),
       });
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('최종 저장에 실패했습니다: $error')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('최종 저장에 실패했습니다: $error')));
     }
   }
 
@@ -141,7 +127,11 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
           IconButton(
             tooltip: '1~7번 문항 이동',
             onPressed: () => showLifeDiaryQuestionNavigator(
-              context, widget.diaryDate, 7, saveCurrent: saveQ7Draft),
+              context,
+              widget.diaryDate,
+              7,
+              saveCurrent: saveQ7Draft,
+            ),
             icon: const Icon(Icons.grid_view_outlined),
           ),
         ],
@@ -152,18 +142,29 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(formatDate(widget.diaryDate),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 14, color: Colors.grey)),
+              Text(
+                formatDate(widget.diaryDate),
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 14, color: Colors.grey),
+              ),
               const SizedBox(height: 8),
-              Text('시즌 1 · 1/50회',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.bold)),
+              Text(
+                currentLifeDiaryDraft.progressLabel,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const SizedBox(height: 4),
-              Text('질문 7/7', textAlign: TextAlign.center,
-                  style: TextStyle(color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.bold)),
+              Text(
+                '질문 7/7',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const SizedBox(height: 18),
               Expanded(child: SingleChildScrollView(child: _buildStage())),
             ],
@@ -180,8 +181,10 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
     return _buildPause();
   }
 
-  Widget _title() => const Text('7. 무엇을 할 것인가?',
-      style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold));
+  Widget _title() => const Text(
+    '7. 무엇을 할 것인가?',
+    style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+  );
 
   Widget _buildPause() => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -195,29 +198,41 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
               .withValues(alpha: 0.6),
           borderRadius: BorderRadius.circular(18),
         ),
-        child: const Column(children: [
-          Icon(Icons.pause_circle_outline, size: 48),
-          SizedBox(height: 14),
-          Text('잠시 모든 것을 멈춥니다.', textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-          SizedBox(height: 14),
-          Text('1~6번의 기록을 천천히 돌아보며\n'
+        child: const Column(
+          children: [
+            Icon(Icons.pause_circle_outline, size: 48),
+            SizedBox(height: 14),
+            Text(
+              '잠시 모든 것을 멈춥니다.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 14),
+            Text(
+              '1~6번의 기록을 천천히 돌아보며\n'
               '“나는 이제 무엇을 할 것인가?”를 묵상해 보세요.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 17, height: 1.6)),
-        ]),
+              style: TextStyle(fontSize: 17, height: 1.6),
+            ),
+          ],
+        ),
       ),
       const SizedBox(height: 22),
-      const Text('7번은 생명일기의 열매입니다.\n\n'
-          '성령님이 주시는 통찰과 하나님의 뜻, 응답, 아이디어와 지혜를 따라 '
-          '실제로 행할 일을 구체적으로 기록합니다. 사소한 일부터 큰 일까지 '
-          '기록할 수 있고, 매일 반복하며 발전시켜도 좋습니다.',
-          style: TextStyle(fontSize: 16, height: 1.65)),
+      const Text(
+        '7번은 생명일기의 열매입니다.\n\n'
+        '성령님이 주시는 통찰과 하나님의 뜻, 응답, 아이디어와 지혜를 따라 '
+        '실제로 행할 일을 구체적으로 기록합니다. 사소한 일부터 큰 일까지 '
+        '기록할 수 있고, 매일 반복하며 발전시켜도 좋습니다.',
+        style: TextStyle(fontSize: 16, height: 1.65),
+      ),
       const SizedBox(height: 28),
-      SizedBox(height: 58, child: FilledButton(
-        onPressed: () => changeStage(1),
-        child: const Text('묵상하고 기록하기', style: TextStyle(fontSize: 18)),
-      )),
+      SizedBox(
+        height: 58,
+        child: FilledButton(
+          onPressed: () => changeStage(1),
+          child: const Text('묵상하고 기록하기', style: TextStyle(fontSize: 18)),
+        ),
+      ),
     ],
   );
 
@@ -226,22 +241,35 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
     children: [
       _title(),
       const SizedBox(height: 10),
-      const Text('묵상하며 깨달은 구체적인 실행을 기록해 주세요.',
-          style: TextStyle(fontSize: 16, height: 1.5)),
+      const Text(
+        '묵상하며 깨달은 구체적인 실행을 기록해 주세요.',
+        style: TextStyle(fontSize: 16, height: 1.5),
+      ),
       const SizedBox(height: 22),
       TextField(
-        controller: actionController, minLines: 4, maxLines: 7,
-        onChanged: (_) { setState(() {}); saveQ7Draft(); },
+        controller: actionController,
+        minLines: 4,
+        maxLines: 7,
+        onChanged: (_) {
+          setState(() {});
+          saveQ7Draft();
+        },
         decoration: const InputDecoration(
-          border: OutlineInputBorder(), labelText: '무엇을 할 것인가?',
+          border: OutlineInputBorder(),
+          labelText: '무엇을 할 것인가?',
           hintText: '내가 실제로 실행할 일을 구체적으로 기록해 주세요.',
           alignLabelWithHint: true,
         ),
       ),
       const SizedBox(height: 18),
       TextField(
-        controller: reasonController, minLines: 4, maxLines: 7,
-        onChanged: (_) { setState(() {}); saveQ7Draft(); },
+        controller: reasonController,
+        minLines: 4,
+        maxLines: 7,
+        onChanged: (_) {
+          setState(() {});
+          saveQ7Draft();
+        },
         decoration: const InputDecoration(
           border: OutlineInputBorder(),
           labelText: '왜 이것을 실행하려고 합니까?',
@@ -250,29 +278,41 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
         ),
       ),
       const SizedBox(height: 24),
-      SizedBox(height: 56, child: FilledButton(
-        onPressed: entryComplete ? () => changeStage(2) : null,
-        child: const Text('실행 내용 확인', style: TextStyle(fontSize: 18)),
-      )),
+      SizedBox(
+        height: 56,
+        child: FilledButton(
+          onPressed: entryComplete ? () => changeStage(2) : null,
+          child: const Text('실행 내용 확인', style: TextStyle(fontSize: 18)),
+        ),
+      ),
     ],
   );
 
   Widget _recordCard(String label, String value) => Card(
     margin: const EdgeInsets.only(bottom: 12),
-    child: Padding(padding: const EdgeInsets.all(18), child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 10),
-        Text(value, style: const TextStyle(fontSize: 17, height: 1.55)),
-      ],
-    )),
+    child: Padding(
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 10),
+          Text(value, style: const TextStyle(fontSize: 17, height: 1.55)),
+        ],
+      ),
+    ),
   );
 
   Widget _buildReview() => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      const Text('나의 실행', style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold)),
+      const Text(
+        '나의 실행',
+        style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+      ),
       const SizedBox(height: 18),
       _recordCard('무엇을 할 것인가?', actionController.text.trim()),
       _recordCard('왜 이것을 실행하려고 합니까?', reasonController.text.trim()),
@@ -290,7 +330,9 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
       if (coachingRequested) ...[
         const SizedBox(height: 10),
         TextField(
-          controller: coachingNoteController, minLines: 3, maxLines: 5,
+          controller: coachingNoteController,
+          minLines: 3,
+          maxLines: 5,
           onChanged: (_) => saveQ7Draft(),
           decoration: const InputDecoration(
             border: OutlineInputBorder(),
@@ -300,20 +342,30 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
         ),
       ],
       const SizedBox(height: 18),
-      OutlinedButton.icon(onPressed: () => changeStage(1),
-          icon: const Icon(Icons.edit_outlined), label: const Text('7번 기록 수정하기')),
+      OutlinedButton.icon(
+        onPressed: () => changeStage(1),
+        icon: const Icon(Icons.edit_outlined),
+        label: const Text('7번 기록 수정하기'),
+      ),
       const SizedBox(height: 12),
       OutlinedButton.icon(
         onPressed: () => showLifeDiaryQuestionNavigator(
-            context, widget.diaryDate, 7, saveCurrent: saveQ7Draft),
+          context,
+          widget.diaryDate,
+          7,
+          saveCurrent: saveQ7Draft,
+        ),
         icon: const Icon(Icons.grid_view_outlined),
         label: const Text('1~7번 기록 다시 확인하기'),
       ),
       const SizedBox(height: 22),
-      SizedBox(height: 58, child: FilledButton(
-        onPressed: completeLifeDiary,
-        child: const Text('생명일기 최종 완성', style: TextStyle(fontSize: 18)),
-      )),
+      SizedBox(
+        height: 58,
+        child: FilledButton(
+          onPressed: completeLifeDiary,
+          child: const Text('생명일기 최종 완성', style: TextStyle(fontSize: 18)),
+        ),
+      ),
     ],
   );
 
@@ -322,16 +374,21 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
     children: [
       const Icon(Icons.check_circle, size: 70, color: Colors.indigo),
       const SizedBox(height: 18),
-      const Text('오늘의 생명일기를 완성했습니다.', textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+      const Text(
+        '오늘의 생명일기를 완성했습니다.',
+        textAlign: TextAlign.center,
+        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+      ),
       const SizedBox(height: 12),
-      const Text('묵상에서 얻은 통찰을 삶에서 실행해 보세요.',
-          textAlign: TextAlign.center, style: TextStyle(fontSize: 16, height: 1.5)),
+      const Text(
+        '묵상에서 얻은 통찰을 삶에서 실행해 보세요.',
+        textAlign: TextAlign.center,
+        style: TextStyle(fontSize: 16, height: 1.5),
+      ),
       const SizedBox(height: 26),
       _recordCard('나의 실행', actionController.text.trim()),
       _recordCard('실행하는 이유', reasonController.text.trim()),
-      if (coachingRequested)
-        const Chip(label: Text('코칭 희망 · 선택 완료')),
+      if (coachingRequested) const Chip(label: Text('코칭 희망 · 선택 완료')),
       const SizedBox(height: 18),
       OutlinedButton.icon(
         onPressed: () {

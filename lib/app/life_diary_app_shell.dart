@@ -282,6 +282,24 @@ class LifeDiaryDatePage extends StatefulWidget {
 
 class _LifeDiaryDatePageState extends State<LifeDiaryDatePage> {
   DateTime selectedDate = DateTime.now();
+  LifeDiaryProgress _progress = const LifeDiaryProgress(
+    seasonNumber: 1,
+    sessionNumber: 1,
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProgress();
+  }
+
+  Future<void> _loadProgress() async {
+    final entries = await lifeDiaryRepository.findByOwner(
+      lifeDiaryEntryFactory.ownerUserId,
+    );
+    final progress = resolveLifeDiaryProgress(entries, selectedDate);
+    if (mounted) setState(() => _progress = progress);
+  }
 
   String formatDate(DateTime date) {
     return '${date.year}년 ${date.month}월 ${date.day}일';
@@ -307,6 +325,7 @@ class _LifeDiaryDatePageState extends State<LifeDiaryDatePage> {
       setState(() {
         selectedDate = pickedDate;
       });
+      await _loadProgress();
     }
   }
 
@@ -333,7 +352,7 @@ class _LifeDiaryDatePageState extends State<LifeDiaryDatePage> {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    '시즌 1 · 1/50회',
+                    _progress.label,
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -403,9 +422,34 @@ class _LifeDiaryDatePageState extends State<LifeDiaryDatePage> {
                 height: 56,
                 child: FilledButton(
                   onPressed: () async {
+                    final existing = _progress.existingEntry;
+                    if (existing != null) {
+                      await showDialog<void>(
+                        context: context,
+                        builder: (dialogContext) => AlertDialog(
+                          title: const Text('이미 기록한 날짜입니다.'),
+                          content: Text(
+                            existing.status == LifeDiaryEntryStatus.deleted
+                                ? '삭제된 기록이 남아 있습니다. 지난 생명일기의 삭제됨 필터에서 복구해 주세요.'
+                                : '같은 날짜의 생명일기는 중복 생성하지 않습니다. 지난 생명일기에서 기존 기록을 확인하거나 수정해 주세요.',
+                          ),
+                          actions: [
+                            FilledButton(
+                              onPressed: () => Navigator.pop(dialogContext),
+                              child: const Text('확인'),
+                            ),
+                          ],
+                        ),
+                      );
+                      return;
+                    }
                     final restored = await restoreLifeDiaryDraft(selectedDate);
                     if (!restored) {
-                      currentLifeDiaryDraft.reset(selectedDate);
+                      currentLifeDiaryDraft.reset(
+                        selectedDate,
+                        season: _progress.seasonNumber,
+                        session: _progress.sessionNumber,
+                      );
                     }
                     if (!context.mounted) return;
                     Navigator.push(

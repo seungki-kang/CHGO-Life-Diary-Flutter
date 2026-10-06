@@ -23,6 +23,9 @@ class LifeDiaryHistoryPage extends StatefulWidget {
 
 class _LifeDiaryHistoryPageState extends State<LifeDiaryHistoryPage> {
   late Future<List<LifeDiaryEntry>> _entries;
+  String _query = '';
+  LifeDiaryEntryStatus? _status;
+  bool _newestFirst = true;
 
   @override
   void initState() {
@@ -39,79 +42,168 @@ class _LifeDiaryHistoryPageState extends State<LifeDiaryHistoryPage> {
     await _entries;
   }
 
+  List<LifeDiaryEntry> _visibleEntries(List<LifeDiaryEntry> source) {
+    final query = _query.trim().toLowerCase();
+    final entries = source.where((entry) {
+      if (_status == null && entry.status == LifeDiaryEntryStatus.deleted) {
+        return false;
+      }
+      if (_status != null && entry.status != _status) return false;
+      if (query.isEmpty) return true;
+      final searchable =
+          '${_formatDate(entry.entryDate)} '
+          '${entry.entryDate.toIso8601String().substring(0, 10)} '
+          '시즌 ${entry.seasonNumber} ${entry.sessionNumber}회 '
+          '${_statusLabel(entry.status)}';
+      return searchable.toLowerCase().contains(query);
+    }).toList();
+    entries.sort((a, b) {
+      final comparison = a.entryDate.compareTo(b.entryDate);
+      return _newestFirst ? -comparison : comparison;
+    });
+    return entries;
+  }
+
+  Future<void> _restore(LifeDiaryEntry entry) async {
+    await widget.repository.restore(entry.entryId);
+    widget.logger?.audit('life_diary.entry_restored', {
+      'entry_id': entry.entryId,
+      'status': 'COMPLETED',
+      'operation': 'RESTORE',
+      'source': 'LOCAL_SQLITE',
+    });
+    if (mounted) await _refresh();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('나의 생명일기'), centerTitle: true),
-      body: FutureBuilder<List<LifeDiaryEntry>>(
-        future: _entries,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return _MessageView(
-              icon: Icons.error_outline,
-              title: '기록을 불러오지 못했습니다.',
-              actionLabel: '다시 시도',
-              onAction: () => setState(_reload),
-            );
-          }
-          final entries = (snapshot.data ?? const <LifeDiaryEntry>[])
-              .where((entry) => entry.status != LifeDiaryEntryStatus.deleted)
-              .toList(growable: false);
-          if (entries.isEmpty) {
-            return const _MessageView(
-              icon: Icons.menu_book_outlined,
-              title: '아직 완성된 생명일기가 없습니다.',
-              description: '생명일기 1~7번을 완성하면 이곳에서 다시 볼 수 있습니다.',
-            );
-          }
-          return RefreshIndicator(
-            onRefresh: _refresh,
-            child: ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: entries.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
-              itemBuilder: (context, index) {
-                final entry = entries[index];
-                return Card(
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 8,
-                    ),
-                    leading: CircleAvatar(
-                      child: Text('${entry.sessionNumber}'),
-                    ),
-                    title: Text(
-                      _formatDate(entry.entryDate),
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Text(
-                      '시즌 ${entry.seasonNumber} · ${entry.sessionNumber}/50회 · '
-                      '${_statusLabel(entry.status)}',
-                    ),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () async {
-                      final changed = await Navigator.push<bool>(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => LifeDiaryDetailPage(
-                            entry: entry,
-                            repository: widget.repository,
-                            logger: widget.logger,
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            child: TextField(
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.search),
+                hintText: '날짜, 시즌, 회차, 상태 검색',
+                border: OutlineInputBorder(),
+              ),
+              onChanged: (value) => setState(() => _query = value),
+            ),
+          ),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
+              children: [
+                ChoiceChip(
+                  label: const Text('활성 전체'),
+                  selected: _status == null,
+                  onSelected: (_) => setState(() => _status = null),
+                ),
+                const SizedBox(width: 6),
+                for (final status in LifeDiaryEntryStatus.values) ...[
+                  ChoiceChip(
+                    label: Text(_statusLabel(status)),
+                    selected: _status == status,
+                    onSelected: (_) => setState(() => _status = status),
+                  ),
+                  const SizedBox(width: 6),
+                ],
+                ActionChip(
+                  avatar: Icon(
+                    _newestFirst ? Icons.arrow_downward : Icons.arrow_upward,
+                  ),
+                  label: Text(_newestFirst ? '최신순' : '오래된순'),
+                  onPressed: () => setState(() => _newestFirst = !_newestFirst),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: FutureBuilder<List<LifeDiaryEntry>>(
+              future: _entries,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState != ConnectionState.done) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return _MessageView(
+                    icon: Icons.error_outline,
+                    title: '기록을 불러오지 못했습니다.',
+                    actionLabel: '다시 시도',
+                    onAction: () => setState(_reload),
+                  );
+                }
+                final entries = _visibleEntries(
+                  snapshot.data ?? const <LifeDiaryEntry>[],
+                );
+                if (entries.isEmpty) {
+                  return _MessageView(
+                    icon: Icons.menu_book_outlined,
+                    title: _query.isEmpty && _status == null
+                        ? '아직 완성된 생명일기가 없습니다.'
+                        : '조건에 맞는 생명일기가 없습니다.',
+                    description: '검색어나 상태 필터를 변경해 보세요.',
+                  );
+                }
+                return RefreshIndicator(
+                  onRefresh: _refresh,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: entries.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      final entry = entries[index];
+                      return Card(
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 18,
+                            vertical: 8,
                           ),
+                          leading: CircleAvatar(
+                            child: Text('${entry.sessionNumber}'),
+                          ),
+                          title: Text(
+                            _formatDate(entry.entryDate),
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Text(
+                            '시즌 ${entry.seasonNumber} · ${entry.sessionNumber}/50회 · '
+                            '${_statusLabel(entry.status)}',
+                          ),
+                          trailing: entry.status == LifeDiaryEntryStatus.deleted
+                              ? TextButton(
+                                  onPressed: () => _restore(entry),
+                                  child: const Text('복구'),
+                                )
+                              : const Icon(Icons.chevron_right),
+                          onTap: entry.status == LifeDiaryEntryStatus.deleted
+                              ? null
+                              : () async {
+                                  final changed = await Navigator.push<bool>(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => LifeDiaryDetailPage(
+                                        entry: entry,
+                                        repository: widget.repository,
+                                        logger: widget.logger,
+                                      ),
+                                    ),
+                                  );
+                                  if (changed == true && mounted)
+                                    await _refresh();
+                                },
                         ),
                       );
-                      if (changed == true && mounted) await _refresh();
                     },
                   ),
                 );
               },
             ),
-          );
-        },
+          ),
+        ],
       ),
     );
   }

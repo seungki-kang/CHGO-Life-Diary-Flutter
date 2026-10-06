@@ -1,7 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 
 const lifeDiaryDatabaseName = 'chgo_life_diary.db';
-const lifeDiaryDatabaseVersion = 2;
+const lifeDiaryDatabaseVersion = 3;
 
 abstract final class LifeDiaryDatabase {
   static Future<Database> open() async {
@@ -13,9 +13,11 @@ abstract final class LifeDiaryDatabase {
       onCreate: (database, version) async {
         await createV001(database);
         await createV002(database);
+        await createV003(database);
       },
       onUpgrade: (database, oldVersion, newVersion) async {
         if (oldVersion < 2) await createV002(database);
+        if (oldVersion < 3) await createV003(database);
       },
     );
   }
@@ -31,7 +33,36 @@ abstract final class LifeDiaryDatabase {
       await database.execute(statement);
     }
   }
+
+  static Future<void> createV003(DatabaseExecutor database) async {
+    for (final statement in v003Statements) {
+      await database.execute(statement);
+    }
+  }
 }
+
+const v003Statements = <String>[
+  'ALTER TABLE life_diary_revision_event RENAME TO life_diary_revision_event_v002',
+  '''
+CREATE TABLE life_diary_revision_event (
+  event_id TEXT PRIMARY KEY,
+  entry_id TEXT NOT NULL REFERENCES life_diary_entry(entry_id) ON DELETE CASCADE,
+  event_type TEXT NOT NULL CHECK (event_type IN ('CREATED','AUTOSAVED','COMPLETED','REOPENED','REVISITED_Q1_Q2','EXPORTED','SHARED','DELETED','RESTORED')),
+  question_id TEXT,
+  occurred_at TEXT NOT NULL,
+  metadata_json TEXT NOT NULL DEFAULT '{}'
+)
+''',
+  '''
+INSERT INTO life_diary_revision_event (
+  event_id, entry_id, event_type, question_id, occurred_at, metadata_json
+)
+SELECT event_id, entry_id, event_type, question_id, occurred_at, metadata_json
+FROM life_diary_revision_event_v002
+''',
+  'DROP TABLE life_diary_revision_event_v002',
+  'CREATE INDEX idx_life_diary_event_entry ON life_diary_revision_event(entry_id, occurred_at)',
+];
 
 const v002Statements = <String>[
   '''

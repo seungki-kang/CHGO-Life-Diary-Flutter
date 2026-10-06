@@ -9,5 +9,7 @@ abstract interface class LifeDiaryRepository {
 
   Future<void> tombstone(String entryId);
 
+  Future<void> restore(String entryId);
+
   Future<void> close();
 }

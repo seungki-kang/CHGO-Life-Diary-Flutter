@@ -16,7 +16,11 @@ void main() {
       options: OpenDatabaseOptions(
         version: lifeDiaryDatabaseVersion,
         onConfigure: (db) => db.execute('PRAGMA foreign_keys = ON'),
-        onCreate: (db, version) => LifeDiaryDatabase.createV001(db),
+        onCreate: (db, version) async {
+          await LifeDiaryDatabase.createV001(db);
+          await LifeDiaryDatabase.createV002(db);
+          await LifeDiaryDatabase.createV003(db);
+        },
       ),
     );
     repository = SqliteLifeDiaryRepository(
@@ -126,6 +130,23 @@ void main() {
       events.map((row) => row['event_type']),
       containsAllInOrder(['CREATED', 'REOPENED', 'COMPLETED']),
     );
+  });
+
+  test('LD-FL-007 restores a tombstoned entry with an audit event', () async {
+    await repository.save(buildEntry(status: LifeDiaryEntryStatus.completed));
+    await repository.tombstone('entry-001');
+    await repository.restore('entry-001');
+
+    final loaded = await repository.findById('entry-001');
+    final events = await database.query(
+      'life_diary_revision_event',
+      where: 'entry_id = ? AND event_type = ?',
+      whereArgs: ['entry-001', 'RESTORED'],
+    );
+
+    expect(loaded!.status, LifeDiaryEntryStatus.completed);
+    expect(events, hasLength(1));
+    expect(events.single['metadata_json'], '{}');
   });
 }
 

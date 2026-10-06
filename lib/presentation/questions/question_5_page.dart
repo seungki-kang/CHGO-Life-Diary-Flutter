@@ -3,14 +3,10 @@ part of '../../main.dart';
 class LifeDiaryQuestion5Page extends StatefulWidget {
   final DateTime diaryDate;
 
-  const LifeDiaryQuestion5Page({
-    super.key,
-    required this.diaryDate,
-  });
+  const LifeDiaryQuestion5Page({super.key, required this.diaryDate});
 
   @override
-  State<LifeDiaryQuestion5Page> createState() =>
-      _LifeDiaryQuestion5PageState();
+  State<LifeDiaryQuestion5Page> createState() => _LifeDiaryQuestion5PageState();
 }
 
 class _LifeDiaryQuestion5PageState extends State<LifeDiaryQuestion5Page> {
@@ -49,9 +45,8 @@ class _LifeDiaryQuestion5PageState extends State<LifeDiaryQuestion5Page> {
   String formatDate(DateTime date) =>
       '${date.year}년 ${date.month}월 ${date.day}일';
 
-  String normalized(String text) => text
-      .replaceAll(RegExp(r'\s+'), '')
-      .replaceAll(RegExp(r'[,.，。]+$'), '');
+  String normalized(String text) =>
+      text.replaceAll(RegExp(r'\s+'), '').replaceAll(RegExp(r'[,.，。]+$'), '');
 
   void beginSelectedRecord() {
     if (selection == null) return;
@@ -83,8 +78,7 @@ class _LifeDiaryQuestion5PageState extends State<LifeDiaryQuestion5Page> {
   }
 
   void checkNoRecordDeclaration() {
-    if (normalized(noRecordController.text) ==
-        normalized(noRecordSentence)) {
+    if (normalized(noRecordController.text) == normalized(noRecordSentence)) {
       setState(() {
         guidance = null;
         stage = 4;
@@ -144,7 +138,7 @@ class _LifeDiaryQuestion5PageState extends State<LifeDiaryQuestion5Page> {
               ),
               const SizedBox(height: 8),
               Text(
-                '시즌 1 · 1/50회',
+                currentLifeDiaryDraft.progressLabel,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.primary,
@@ -185,13 +179,9 @@ class _LifeDiaryQuestion5PageState extends State<LifeDiaryQuestion5Page> {
   }
 
   Widget _questionTitle() => const Text(
-        '5. 성령님과 어떤 교제(경험)를 나누었는가?',
-        style: TextStyle(
-          fontSize: 23,
-          fontWeight: FontWeight.bold,
-          height: 1.4,
-        ),
-      );
+    '5. 성령님과 어떤 교제(경험)를 나누었는가?',
+    style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold, height: 1.4),
+  );
 
   Widget _buildSelection() {
     return Column(
@@ -202,9 +192,7 @@ class _LifeDiaryQuestion5PageState extends State<LifeDiaryQuestion5Page> {
         Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: Theme.of(context)
-                .colorScheme
-                .surfaceContainerHighest
+            color: Theme.of(context).colorScheme.surfaceContainerHighest
                 .withValues(alpha: 0.55),
             borderRadius: BorderRadius.circular(16),
           ),
@@ -221,22 +209,10 @@ class _LifeDiaryQuestion5PageState extends State<LifeDiaryQuestion5Page> {
           style: TextStyle(fontSize: 16, height: 1.5),
         ),
         const SizedBox(height: 12),
-        _selectionTile(
-          value: 'daily',
-          title: '일상에서 성령님과 나눈 교제(경험)를 기록합니다.',
-        ),
-        _selectionTile(
-          value: 'word',
-          title: '말씀을 읽다가 성령께서 깨닫게 하신 것을 기록합니다.',
-        ),
-        _selectionTile(
-          value: 'both',
-          title: '두 가지 모두 기록합니다.',
-        ),
-        _selectionTile(
-          value: 'none',
-          title: '오늘 5번에 구체적으로 기록할 것이 없습니다.',
-        ),
+        _selectionTile(value: 'daily', title: '일상에서 성령님과 나눈 교제(경험)를 기록합니다.'),
+        _selectionTile(value: 'word', title: '말씀을 읽다가 성령께서 깨닫게 하신 것을 기록합니다.'),
+        _selectionTile(value: 'both', title: '두 가지 모두 기록합니다.'),
+        _selectionTile(value: 'none', title: '오늘 5번에 구체적으로 기록할 것이 없습니다.'),
         const SizedBox(height: 24),
         SizedBox(
           height: 56,
@@ -368,8 +344,7 @@ class _LifeDiaryQuestion5PageState extends State<LifeDiaryQuestion5Page> {
             onPressed: wordController.text.trim().isEmpty
                 ? null
                 : completeWordRecord,
-            child: const Text('말씀 교제 기록 완료',
-                style: TextStyle(fontSize: 18)),
+            child: const Text('말씀 교제 기록 완료', style: TextStyle(fontSize: 18)),
           ),
         ),
       ],
@@ -377,28 +352,23 @@ class _LifeDiaryQuestion5PageState extends State<LifeDiaryQuestion5Page> {
   }
 
   Widget _fadedSentence(String sentence) => Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Theme.of(context)
-              .colorScheme
-              .surfaceContainerHighest
-              .withValues(alpha: 0.55),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Text(
-          sentence,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 18,
-            height: 1.55,
-            fontWeight: FontWeight.w600,
-            color: Theme.of(context)
-                .colorScheme
-                .onSurface
-                .withValues(alpha: 0.48),
-          ),
-        ),
-      );
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      color: Theme.of(context).colorScheme.surfaceContainerHighest
+          .withValues(alpha: 0.55),
+      borderRadius: BorderRadius.circular(16),
+    ),
+    child: Text(
+      sentence,
+      textAlign: TextAlign.center,
+      style: TextStyle(
+        fontSize: 18,
+        height: 1.55,
+        fontWeight: FontWeight.w600,
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.48),
+      ),
+    ),
+  );
 
   Widget _buildNoRecordDeclaration() {
     return Column(
@@ -442,8 +412,7 @@ class _LifeDiaryQuestion5PageState extends State<LifeDiaryQuestion5Page> {
             onPressed: noRecordController.text.trim().isEmpty
                 ? null
                 : checkNoRecordDeclaration,
-            child: const Text('감사 고백 완료',
-                style: TextStyle(fontSize: 18)),
+            child: const Text('감사 고백 완료', style: TextStyle(fontSize: 18)),
           ),
         ),
       ],
@@ -454,10 +423,10 @@ class _LifeDiaryQuestion5PageState extends State<LifeDiaryQuestion5Page> {
     final summary = selection == 'both'
         ? '일상에서의 교제와 말씀을 통한 깨달음을 모두 기록했습니다.'
         : selection == 'daily'
-            ? '일상에서 성령님과 나눈 교제와 경험을 기록했습니다.'
-            : selection == 'word'
-                ? '말씀을 읽으며 성령께서 깨닫게 하신 내용을 기록했습니다.'
-                : '말할 수 없는 탄식으로 간구하시는 성령님께 감사드렸습니다.';
+        ? '일상에서 성령님과 나눈 교제와 경험을 기록했습니다.'
+        : selection == 'word'
+        ? '말씀을 읽으며 성령께서 깨닫게 하신 내용을 기록했습니다.'
+        : '말할 수 없는 탄식으로 간구하시는 성령님께 감사드렸습니다.';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -476,9 +445,10 @@ class _LifeDiaryQuestion5PageState extends State<LifeDiaryQuestion5Page> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text('일상에서 성령님과 나눈 교제',
-                      style: TextStyle(
-                          fontSize: 17, fontWeight: FontWeight.bold)),
+                  const Text(
+                    '일상에서 성령님과 나눈 교제',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(height: 10),
                   Text(dailyController.text),
                 ],
@@ -493,9 +463,10 @@ class _LifeDiaryQuestion5PageState extends State<LifeDiaryQuestion5Page> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text('말씀을 통해 깨닫게 하신 내용',
-                      style: TextStyle(
-                          fontSize: 17, fontWeight: FontWeight.bold)),
+                  const Text(
+                    '말씀을 통해 깨닫게 하신 내용',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(height: 10),
                   Text(wordController.text),
                 ],
@@ -506,8 +477,10 @@ class _LifeDiaryQuestion5PageState extends State<LifeDiaryQuestion5Page> {
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
-              child: Text(noRecordController.text,
-                  style: const TextStyle(height: 1.5)),
+              child: Text(
+                noRecordController.text,
+                style: const TextStyle(height: 1.5),
+              ),
             ),
           ),
         const SizedBox(height: 14),
@@ -528,14 +501,12 @@ class _LifeDiaryQuestion5PageState extends State<LifeDiaryQuestion5Page> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => LifeDiaryQuestion6Page(
-                    diaryDate: widget.diaryDate,
-                  ),
+                  builder: (_) =>
+                      LifeDiaryQuestion6Page(diaryDate: widget.diaryDate),
                 ),
               );
             },
-            child: const Text('6번으로 이동',
-                style: TextStyle(fontSize: 18)),
+            child: const Text('6번으로 이동', style: TextStyle(fontSize: 18)),
           ),
         ),
       ],
@@ -547,4 +518,3 @@ class _LifeDiaryQuestion5PageState extends State<LifeDiaryQuestion5Page> {
 // V0.16a
 // Life Diary Question 4
 // ============================================================
-

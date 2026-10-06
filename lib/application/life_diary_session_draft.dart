@@ -2,21 +2,20 @@ part of '../main.dart';
 
 final TextInputFormatter keepMyRighteousnessWording =
     TextInputFormatter.withFunction((oldValue, newValue) {
-  if (newValue.composing.isValid && !newValue.composing.isCollapsed) {
-    return newValue;
-  }
-  final corrected = newValue.text.replaceAll('나의 이는', '나의 의는');
-  if (corrected == newValue.text) return newValue;
-  return newValue.copyWith(
-    text: corrected,
-    selection: newValue.selection,
-    composing: TextRange.empty,
-  );
-});
+      if (newValue.composing.isValid && !newValue.composing.isCollapsed) {
+        return newValue;
+      }
+      final corrected = newValue.text.replaceAll('나의 이는', '나의 의는');
+      if (corrected == newValue.text) return newValue;
+      return newValue.copyWith(
+        text: corrected,
+        selection: newValue.selection,
+        composing: TextRange.empty,
+      );
+    });
 
-String normalizeDiarySentence(String text) => text
-    .replaceAll(RegExp(r'\s+'), '')
-    .replaceAll(RegExp(r'[.。]+$'), '');
+String normalizeDiarySentence(String text) =>
+    text.replaceAll(RegExp(r'\s+'), '').replaceAll(RegExp(r'[.。]+$'), '');
 
 String characterDifferenceGuidance(String typedText, String expectedText) {
   final typed = normalizeDiarySentence(typedText);
@@ -35,8 +34,11 @@ String characterDifferenceGuidance(String typedText, String expectedText) {
       final deletion = matrix[i - 1][j] + 1;
       final insertion = matrix[i][j - 1] + 1;
       final replacement = matrix[i - 1][j - 1] + cost;
-      matrix[i][j] = [deletion, insertion, replacement]
-          .reduce((a, b) => a < b ? a : b);
+      matrix[i][j] = [
+        deletion,
+        insertion,
+        replacement,
+      ].reduce((a, b) => a < b ? a : b);
     }
   }
 
@@ -51,23 +53,17 @@ String characterDifferenceGuidance(String typedText, String expectedText) {
       j--;
       continue;
     }
-    if (i > 0 &&
-        j > 0 &&
-        matrix[i][j] == matrix[i - 1][j - 1] + 1) {
+    if (i > 0 && j > 0 && matrix[i][j] == matrix[i - 1][j - 1] + 1) {
       differences.add(
         '${j}번째 글자 “${typed[i - 1]}”를 “${expected[j - 1]}”로 수정해 주세요.',
       );
       i--;
       j--;
     } else if (i > 0 && matrix[i][j] == matrix[i - 1][j] + 1) {
-      differences.add(
-        '${i}번째에 입력한 “${typed[i - 1]}”는 더 들어간 글자입니다. 삭제해 주세요.',
-      );
+      differences.add('${i}번째에 입력한 “${typed[i - 1]}”는 더 들어간 글자입니다. 삭제해 주세요.');
       i--;
     } else if (j > 0) {
-      differences.add(
-        '${j}번째에 “${expected[j - 1]}”가 빠졌습니다. 넣어 주세요.',
-      );
+      differences.add('${j}번째에 “${expected[j - 1]}”가 빠졌습니다. 넣어 주세요.');
       j--;
     }
   }
@@ -83,6 +79,10 @@ String characterDifferenceGuidance(String typedText, String expectedText) {
 
 class LifeDiarySessionDraft {
   DateTime? diaryDate;
+  int seasonNumber = 1;
+  int sessionNumber = 1;
+
+  String get progressLabel => '시즌 $seasonNumber · $sessionNumber/50회';
   String q1Detail = '';
   final Set<String> q1OldSelves = {};
   bool q1NoOldSelf = false;
@@ -151,6 +151,8 @@ class LifeDiarySessionDraft {
   bool q7FinalCompleted = false;
 
   Map<String, Object?> toJson() => {
+    'season_number': seasonNumber,
+    'session_number': sessionNumber,
     'q1_detail': q1Detail,
     'q1_old_selves': q1OldSelves.toList(),
     'q1_no_old_self': q1NoOldSelf,
@@ -219,14 +221,23 @@ class LifeDiarySessionDraft {
     String text(String key) => json[key] as String? ?? '';
     bool flag(String key) => json[key] as bool? ?? false;
     int number(String key) => (json[key] as num?)?.toInt() ?? 0;
-    List<String> strings(String key) =>
-        (json[key] as List? ?? const []).map((value) => value.toString()).toList();
+    List<String> strings(String key) => (json[key] as List? ?? const [])
+        .map((value) => value.toString())
+        .toList();
+
+    seasonNumber = json.containsKey('season_number')
+        ? number('season_number')
+        : 1;
+    sessionNumber = json.containsKey('session_number')
+        ? number('session_number')
+        : 1;
 
     q1Detail = text('q1_detail');
     q1OldSelves.addAll(strings('q1_old_selves'));
     q1NoOldSelf = flag('q1_no_old_self');
     q1Awareness = json['q1_awareness'] as String?;
-    q1AwarenessPercent = (json['q1_awareness_percent'] as num?)?.toDouble() ?? 50;
+    q1AwarenessPercent =
+        (json['q1_awareness_percent'] as num?)?.toDouble() ?? 50;
     q1Step = json.containsKey('q1_step') ? number('q1_step') : 1;
     q2CompletedOldSelves.addAll(strings('q2_completed_old_selves'));
     q2PartialText = text('q2_partial_text');
@@ -234,10 +245,12 @@ class LifeDiarySessionDraft {
     q3Stage = number('q3_stage');
     q3SelectedRealms.addAll(strings('q3_selected_realms'));
     q3SelectedFruits.addAll(strings('q3_selected_fruits'));
-    q3EnjoymentRecords.addAll((json['q3_enjoyment_records'] as List? ?? const [])
-        .whereType<Map>().map((value) => value.map(
-              (key, item) => MapEntry(key.toString(), item.toString()),
-            )));
+    q3EnjoymentRecords.addAll(
+      (json['q3_enjoyment_records'] as List? ?? const []).whereType<Map>().map(
+        (value) =>
+            value.map((key, item) => MapEntry(key.toString(), item.toString())),
+      ),
+    );
     q3RealmQueue.addAll(strings('q3_realm_queue'));
     q3MissingFruits.addAll(strings('q3_missing_fruits'));
     q3Event = text('q3_event');
@@ -274,10 +287,12 @@ class LifeDiarySessionDraft {
     q5WordRecord = text('q5_word_record');
     q5NoRecordDeclaration = text('q5_no_record_declaration');
     q6Stage = number('q6_stage');
-    q6Gratitudes.addAll((json['q6_gratitudes'] as List? ?? const [])
-        .whereType<Map>().map((value) => value.map(
-              (key, item) => MapEntry(key.toString(), item.toString()),
-            )));
+    q6Gratitudes.addAll(
+      (json['q6_gratitudes'] as List? ?? const []).whereType<Map>().map(
+        (value) =>
+            value.map((key, item) => MapEntry(key.toString(), item.toString())),
+      ),
+    );
     q6Person = text('q6_person');
     q6What = text('q6_what');
     q6Why = text('q6_why');
@@ -291,8 +306,10 @@ class LifeDiarySessionDraft {
     q7FinalCompleted = flag('q7_final_completed');
   }
 
-  void reset(DateTime date) {
+  void reset(DateTime date, {int season = 1, int session = 1}) {
     diaryDate = date;
+    seasonNumber = season;
+    sessionNumber = session;
     q1Detail = '';
     q1OldSelves.clear();
     q1NoOldSelf = false;
@@ -361,4 +378,3 @@ class LifeDiarySessionDraft {
 // V0.17a
 // Life Diary Question 7
 // ============================================================
-

@@ -138,6 +138,22 @@ LIMIT 1
   }
 
   @override
+  Future<void> restore(String entryId) async {
+    await database.transaction((transaction) async {
+      final now = _clock().toUtc().toIso8601String();
+      final count = await transaction.update(
+        'life_diary_entry',
+        {'status': 'COMPLETED', 'updated_at': now, 'completed_at': now},
+        where: 'entry_id = ? AND status = ?',
+        whereArgs: [entryId, 'DELETED'],
+      );
+      if (count > 0) {
+        await _appendEvent(transaction, entryId, 'RESTORED', now);
+      }
+    });
+  }
+
+  @override
   Future<void> close() => database.close();
 
   Map<String, Object?> _entryRow(LifeDiaryEntry entry) => {

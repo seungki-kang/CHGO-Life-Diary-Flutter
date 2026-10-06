@@ -3,14 +3,10 @@ part of '../../main.dart';
 class LifeDiaryQuestion4Page extends StatefulWidget {
   final DateTime diaryDate;
 
-  const LifeDiaryQuestion4Page({
-    super.key,
-    required this.diaryDate,
-  });
+  const LifeDiaryQuestion4Page({super.key, required this.diaryDate});
 
   @override
-  State<LifeDiaryQuestion4Page> createState() =>
-      _LifeDiaryQuestion4PageState();
+  State<LifeDiaryQuestion4Page> createState() => _LifeDiaryQuestion4PageState();
 }
 
 class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
@@ -106,9 +102,8 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
   String formatDate(DateTime date) =>
       '${date.year}년 ${date.month}월 ${date.day}일';
 
-  String normalized(String text) => text
-      .replaceAll(RegExp(r'\s+'), '')
-      .replaceAll(RegExp(r'[.。]+$'), '');
+  String normalized(String text) =>
+      text.replaceAll(RegExp(r'\s+'), '').replaceAll(RegExp(r'[.。]+$'), '');
 
   String confessionSubject(String oldSelf) {
     const subjects = {
@@ -234,15 +229,19 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text('기록 보기·수정',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              const Text(
+                '기록 보기·수정',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 16),
               ListTile(
                 leading: const CircleAvatar(child: Text('1')),
                 title: const Text('오늘 발견한 옛사람'),
-                subtitle: Text(currentLifeDiaryDraft.q1NoOldSelf
-                    ? '구체적으로 발견한 옛사람 없음'
-                    : currentLifeDiaryDraft.q1OldSelves.join(', ')),
+                subtitle: Text(
+                  currentLifeDiaryDraft.q1NoOldSelf
+                      ? '구체적으로 발견한 옛사람 없음'
+                      : currentLifeDiaryDraft.q1OldSelves.join(', '),
+                ),
                 trailing: const Icon(Icons.edit_outlined),
                 onTap: () async {
                   Navigator.pop(sheetContext);
@@ -262,7 +261,8 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
                 leading: const CircleAvatar(child: Text('2')),
                 title: const Text('십자가 처리 기록'),
                 subtitle: Text(
-                    currentLifeDiaryDraft.q2CompletedOldSelves.join(', ')),
+                  currentLifeDiaryDraft.q2CompletedOldSelves.join(', '),
+                ),
               ),
               const ListTile(
                 leading: CircleAvatar(child: Text('3')),
@@ -327,25 +327,31 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(formatDate(widget.diaryDate),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 14, color: Colors.grey)),
-              const SizedBox(height: 8),
-              Text('시즌 1 · 1/50회',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.bold)),
-              const SizedBox(height: 4),
-              Text('질문 4/7',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.bold)),
-              const SizedBox(height: 18),
-              Expanded(
-                child: SingleChildScrollView(child: _buildStage()),
+              Text(
+                formatDate(widget.diaryDate),
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 14, color: Colors.grey),
               ),
+              const SizedBox(height: 8),
+              Text(
+                currentLifeDiaryDraft.progressLabel,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '질문 4/7',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 18),
+              Expanded(child: SingleChildScrollView(child: _buildStage())),
             ],
           ),
         ),
@@ -376,7 +382,11 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
       children: [
         const Text(
           '4. 다른 사람의 옛사람을 하나님의 사랑과 긍휼하심으로 바라본 적이 있는가? (저항, 판단 없이)',
-          style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold, height: 1.4),
+          style: TextStyle(
+            fontSize: 23,
+            fontWeight: FontWeight.bold,
+            height: 1.4,
+          ),
         ),
         const SizedBox(height: 12),
         const Text(
@@ -471,8 +481,10 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
           height: 56,
           child: FilledButton(
             onPressed: noRecordToday || eventComplete ? beginQuestion4 : null,
-            child: Text(noRecordToday ? '세 문장 기록하기' : '4번 사건 기록 완료',
-                style: const TextStyle(fontSize: 18)),
+            child: Text(
+              noRecordToday ? '세 문장 기록하기' : '4번 사건 기록 완료',
+              style: const TextStyle(fontSize: 18),
+            ),
           ),
         ),
       ],
@@ -486,8 +498,14 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text('4번을 통해 내 안의 옛사람을 새롭게 발견했나요?',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, height: 1.4)),
+        const Text(
+          '4번을 통해 내 안의 옛사람을 새롭게 발견했나요?',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            height: 1.4,
+          ),
+        ),
         const SizedBox(height: 12),
         Text(q1Summary, style: const TextStyle(fontSize: 16, height: 1.5)),
         const SizedBox(height: 18),
@@ -515,10 +533,13 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
         SizedBox(
           height: 56,
           child: FilledButton(
-            onPressed: newDiscoveryChoice == null ? null : continueAfterReflection,
-            child: Text(newDiscoveryChoice == 'different'
-                ? '추가 1·2번 처리 선택'
-                : '4번 마치기', style: const TextStyle(fontSize: 18)),
+            onPressed: newDiscoveryChoice == null
+                ? null
+                : continueAfterReflection,
+            child: Text(
+              newDiscoveryChoice == 'different' ? '추가 1·2번 처리 선택' : '4번 마치기',
+              style: const TextStyle(fontSize: 18),
+            ),
           ),
         ),
       ],
@@ -526,42 +547,47 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
   }
 
   Widget _fadedSentence(String sentence) => Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Theme.of(context)
-              .colorScheme
-              .surfaceContainerHighest
-              .withValues(alpha: 0.55),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Text(sentence,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-                fontSize: 18,
-                height: 1.5,
-                fontWeight: FontWeight.w600,
-                color: Theme.of(context)
-                    .colorScheme
-                    .onSurface
-                    .withValues(alpha: 0.48))),
-      );
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      color: Theme.of(context).colorScheme.surfaceContainerHighest
+          .withValues(alpha: 0.55),
+      borderRadius: BorderRadius.circular(16),
+    ),
+    child: Text(
+      sentence,
+      textAlign: TextAlign.center,
+      style: TextStyle(
+        fontSize: 18,
+        height: 1.5,
+        fontWeight: FontWeight.w600,
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.48),
+      ),
+    ),
+  );
 
   Widget _buildNoRecordDeclarations() {
     final expected = noRecordDeclarations[declarationIndex];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text('생명일기 4번에 기록할 것이 없다면',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+        const Text(
+          '생명일기 4번에 기록할 것이 없다면',
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 10),
-        const Text('세 문장을 처음부터 끝까지 직접 기록해 주세요.',
-            style: TextStyle(fontSize: 16, height: 1.5)),
+        const Text(
+          '세 문장을 처음부터 끝까지 직접 기록해 주세요.',
+          style: TextStyle(fontSize: 16, height: 1.5),
+        ),
         const SizedBox(height: 20),
-        Text('생명 고백 ${declarationIndex + 1}/3',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.bold)),
+        Text(
+          '생명 고백 ${declarationIndex + 1}/3',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.primary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         const SizedBox(height: 10),
         _fadedSentence(expected),
         const SizedBox(height: 16),
@@ -571,13 +597,16 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
           maxLines: 5,
           onChanged: (_) => setState(() => guidance = null),
           decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              hintText: '위 문장 전체를 직접 기록해 주세요.'),
+            border: OutlineInputBorder(),
+            hintText: '위 문장 전체를 직접 기록해 주세요.',
+          ),
         ),
         if (guidance != null) ...[
           const SizedBox(height: 10),
-          Text(guidance!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error)),
+          Text(
+            guidance!,
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          ),
         ],
         const SizedBox(height: 22),
         SizedBox(
@@ -586,8 +615,10 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
             onPressed: declarationController.text.trim().isEmpty
                 ? null
                 : checkNoRecordDeclaration,
-            child: Text(declarationIndex == 2 ? '4번 기록 완료' : '다음 문장',
-                style: const TextStyle(fontSize: 18)),
+            child: Text(
+              declarationIndex == 2 ? '4번 기록 완료' : '다음 문장',
+              style: const TextStyle(fontSize: 18),
+            ),
           ),
         ),
       ],
@@ -598,30 +629,41 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text('4번에서 새롭게 발견한 옛사람을 추가로 처리합니다.',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, height: 1.4)),
+        const Text(
+          '4번에서 새롭게 발견한 옛사람을 추가로 처리합니다.',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            height: 1.4,
+          ),
+        ),
         const SizedBox(height: 12),
-        const Text('기존 1번 기록은 그대로 보존됩니다. 새롭게 발견한 것만 모두 선택해 주세요.',
-            style: TextStyle(fontSize: 16, height: 1.5)),
+        const Text(
+          '기존 1번 기록은 그대로 보존됩니다. 새롭게 발견한 것만 모두 선택해 주세요.',
+          style: TextStyle(fontSize: 16, height: 1.5),
+        ),
         const SizedBox(height: 16),
-        ...allOldSelves.map((oldSelf) => CheckboxListTile(
-              contentPadding: EdgeInsets.zero,
-              value: additionalOldSelves.contains(oldSelf),
-              title: Text(oldSelf),
-              onChanged: (value) => setState(() {
-                if (value == true) {
-                  additionalOldSelves.add(oldSelf);
-                } else {
-                  additionalOldSelves.remove(oldSelf);
-                }
-              }),
-            )),
+        ...allOldSelves.map(
+          (oldSelf) => CheckboxListTile(
+            contentPadding: EdgeInsets.zero,
+            value: additionalOldSelves.contains(oldSelf),
+            title: Text(oldSelf),
+            onChanged: (value) => setState(() {
+              if (value == true) {
+                additionalOldSelves.add(oldSelf);
+              } else {
+                additionalOldSelves.remove(oldSelf);
+              }
+            }),
+          ),
+        ),
         const Divider(height: 28),
         CheckboxListTile(
           contentPadding: EdgeInsets.zero,
           value: acceptsOwnership,
           title: const Text('이 옛사람은 100% 내 안에 있음을 깨달았습니다.'),
-          onChanged: (value) => setState(() => acceptsOwnership = value ?? false),
+          onChanged: (value) =>
+              setState(() => acceptsOwnership = value ?? false),
         ),
         const SizedBox(height: 20),
         SizedBox(
@@ -630,8 +672,7 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
             onPressed: additionalOldSelves.isNotEmpty && acceptsOwnership
                 ? beginAdditionalProcessing
                 : null,
-            child: const Text('추가 2번으로 처리하기',
-                style: TextStyle(fontSize: 18)),
+            child: const Text('추가 2번으로 처리하기', style: TextStyle(fontSize: 18)),
           ),
         ),
         TextButton(
@@ -647,14 +688,23 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text('새롭게 발견한 옛사람을 십자가에서 처리합니다.',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, height: 1.4)),
+        const Text(
+          '새롭게 발견한 옛사람을 십자가에서 처리합니다.',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            height: 1.4,
+          ),
+        ),
         const SizedBox(height: 10),
-        Text('추가 십자가 고백 ${additionalIndex + 1}/${additionalQueue.length}',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.bold)),
+        Text(
+          '추가 십자가 고백 ${additionalIndex + 1}/${additionalQueue.length}',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.primary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         const SizedBox(height: 12),
         _fadedSentence(expected),
         const SizedBox(height: 16),
@@ -665,13 +715,16 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
           maxLines: 5,
           onChanged: (_) => setState(() => guidance = null),
           decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              hintText: '위 문장 전체를 직접 기록해 주세요.'),
+            border: OutlineInputBorder(),
+            hintText: '위 문장 전체를 직접 기록해 주세요.',
+          ),
         ),
         if (guidance != null) ...[
           const SizedBox(height: 10),
-          Text(guidance!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error)),
+          Text(
+            guidance!,
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          ),
         ],
         const SizedBox(height: 22),
         SizedBox(
@@ -680,9 +733,12 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
             onPressed: additionalConfessionController.text.trim().isEmpty
                 ? null
                 : checkAdditionalConfession,
-            child: Text(additionalIndex == additionalQueue.length - 1
-                ? '추가 1·2번 처리 완료'
-                : '다음 문장', style: const TextStyle(fontSize: 18)),
+            child: Text(
+              additionalIndex == additionalQueue.length - 1
+                  ? '추가 1·2번 처리 완료'
+                  : '다음 문장',
+              style: const TextStyle(fontSize: 18),
+            ),
           ),
         ),
       ],
@@ -693,15 +749,17 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text('생명일기 4번을 마쳤습니다.',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+        const Text(
+          '생명일기 4번을 마쳤습니다.',
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 14),
         Text(
           noRecordToday
               ? '다른 사람을 판단하거나 저항하지 않고, 하나님의 사랑과 긍휼하심으로 바라보는 세 문장을 기록했습니다.'
               : additionalQueue.isNotEmpty
-                  ? '4번에서 새롭게 발견한 옛사람까지 십자가에서 처리했습니다.'
-                  : '다른 사람의 옛사람과 관련된 사건과 내 반응을 기록했습니다.',
+              ? '4번에서 새롭게 발견한 옛사람까지 십자가에서 처리했습니다.'
+              : '다른 사람의 옛사람과 관련된 사건과 내 반응을 기록했습니다.',
           style: const TextStyle(fontSize: 16, height: 1.5),
         ),
         const SizedBox(height: 18),
@@ -769,18 +827,15 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => LifeDiaryQuestion5Page(
-                    diaryDate: widget.diaryDate,
-                  ),
+                  builder: (_) =>
+                      LifeDiaryQuestion5Page(diaryDate: widget.diaryDate),
                 ),
               );
             },
-            child: const Text('5번으로 이동',
-                style: TextStyle(fontSize: 18)),
+            child: const Text('5번으로 이동', style: TextStyle(fontSize: 18)),
           ),
         ),
       ],
     );
   }
 }
-

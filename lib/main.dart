@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'core/observability/app_logger.dart';
+import 'application/life_diary_progress.dart';
 import 'data/life_diary_database.dart';
 import 'data/life_diary_draft_store.dart';
 import 'data/life_diary_entry_factory.dart';
 import 'data/sqlite_life_diary_repository.dart';
+import 'domain/life_diary_models.dart';
 import 'presentation/life_diary_history_page.dart';
 
 part 'application/life_diary_session_draft.dart';

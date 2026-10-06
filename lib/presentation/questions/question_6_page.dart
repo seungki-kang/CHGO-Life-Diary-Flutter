@@ -3,14 +3,10 @@ part of '../../main.dart';
 class LifeDiaryQuestion6Page extends StatefulWidget {
   final DateTime diaryDate;
 
-  const LifeDiaryQuestion6Page({
-    super.key,
-    required this.diaryDate,
-  });
+  const LifeDiaryQuestion6Page({super.key, required this.diaryDate});
 
   @override
-  State<LifeDiaryQuestion6Page> createState() =>
-      _LifeDiaryQuestion6PageState();
+  State<LifeDiaryQuestion6Page> createState() => _LifeDiaryQuestion6PageState();
 }
 
 class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
@@ -174,7 +170,7 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
               ),
               const SizedBox(height: 8),
               Text(
-                '시즌 1 · 1/50회',
+                currentLifeDiaryDraft.progressLabel,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.primary,
@@ -213,13 +209,9 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
   }
 
   Widget _questionTitle() => const Text(
-        '6. 감사할 것은 무엇인가?',
-        style: TextStyle(
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
-          height: 1.4,
-        ),
-      );
+    '6. 감사할 것은 무엇인가?',
+    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, height: 1.4),
+  );
 
   Widget _buildIntroduction() {
     return Column(
@@ -230,9 +222,7 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
         Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: Theme.of(context)
-                .colorScheme
-                .surfaceContainerHighest
+            color: Theme.of(context).colorScheme.surfaceContainerHighest
                 .withValues(alpha: 0.55),
             borderRadius: BorderRadius.circular(16),
           ),
@@ -240,7 +230,11 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
             '“범사에 감사하라”\n'
             '(데살로니가전서 5장 18절)',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 19, height: 1.6, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: 19,
+              height: 1.6,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
         const SizedBox(height: 20),
@@ -254,7 +248,11 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
         const SizedBox(height: 22),
         const Text(
           '오늘 구체적으로 감사할 내용을 3가지 이상 기록해 주세요.',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, height: 1.5),
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            height: 1.5,
+          ),
         ),
         const SizedBox(height: 8),
         const Text(
@@ -336,8 +334,10 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
           ),
         ),
         const SizedBox(height: 18),
-        const Text('감사의 상황 · 선택 사항',
-            style: TextStyle(fontWeight: FontWeight.w600)),
+        const Text(
+          '감사의 상황 · 선택 사항',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
         const SizedBox(height: 10),
         Wrap(
           spacing: 8,
@@ -369,8 +369,8 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
               editingIndex != null
                   ? '수정 내용 저장'
                   : gratitudes.length < 2
-                      ? '저장하고 다음 감사 기록'
-                      : '감사 기록 저장',
+                  ? '저장하고 다음 감사 기록'
+                  : '감사 기록 저장',
               style: const TextStyle(fontSize: 18),
             ),
           ),
@@ -393,7 +393,10 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
                 Expanded(
                   child: Text(
                     '감사 ${index + 1}',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 if ((item['type'] ?? '').isNotEmpty)
@@ -432,11 +435,15 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text('감사를 3가지 이상 기록했습니다.',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+        const Text(
+          '감사를 3가지 이상 기록했습니다.',
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 10),
-        Text('현재 ${gratitudes.length}가지 감사를 기록했습니다.',
-            style: const TextStyle(fontSize: 16)),
+        Text(
+          '현재 ${gratitudes.length}가지 감사를 기록했습니다.',
+          style: const TextStyle(fontSize: 16),
+        ),
         const SizedBox(height: 20),
         ...List.generate(
           gratitudes.length,
@@ -448,8 +455,7 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
           child: OutlinedButton.icon(
             onPressed: addAnotherGratitude,
             icon: const Icon(Icons.add),
-            label: const Text('감사를 더 기록합니다',
-                style: TextStyle(fontSize: 17)),
+            label: const Text('감사를 더 기록합니다', style: TextStyle(fontSize: 17)),
           ),
         ),
         const SizedBox(height: 12),
@@ -457,8 +463,7 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
           height: 56,
           child: FilledButton(
             onPressed: finishQuestion6,
-            child: const Text('생명일기 6번을 마칩니다',
-                style: TextStyle(fontSize: 18)),
+            child: const Text('생명일기 6번을 마칩니다', style: TextStyle(fontSize: 18)),
           ),
         ),
       ],
@@ -469,11 +474,15 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text('생명일기 6번을 마쳤습니다.',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+        const Text(
+          '생명일기 6번을 마쳤습니다.',
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 10),
-        Text('오늘 ${gratitudes.length}가지 감사를 기록했습니다.',
-            style: const TextStyle(fontSize: 16)),
+        Text(
+          '오늘 ${gratitudes.length}가지 감사를 기록했습니다.',
+          style: const TextStyle(fontSize: 16),
+        ),
         const SizedBox(height: 20),
         ...List.generate(
           gratitudes.length,
@@ -494,14 +503,12 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => LifeDiaryQuestion7Page(
-                    diaryDate: widget.diaryDate,
-                  ),
+                  builder: (_) =>
+                      LifeDiaryQuestion7Page(diaryDate: widget.diaryDate),
                 ),
               );
             },
-            child: const Text('생명일기 7번으로',
-                style: TextStyle(fontSize: 18)),
+            child: const Text('생명일기 7번으로', style: TextStyle(fontSize: 18)),
           ),
         ),
       ],
@@ -513,4 +520,3 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
 // V0.16a
 // Life Diary Question 5
 // ============================================================
-

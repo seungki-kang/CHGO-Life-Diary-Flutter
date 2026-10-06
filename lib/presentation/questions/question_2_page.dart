@@ -13,12 +13,10 @@ class LifeDiaryQuestion2Page extends StatefulWidget {
   });
 
   @override
-  State<LifeDiaryQuestion2Page> createState() =>
-      _LifeDiaryQuestion2PageState();
+  State<LifeDiaryQuestion2Page> createState() => _LifeDiaryQuestion2PageState();
 }
 
-class _LifeDiaryQuestion2PageState
-    extends State<LifeDiaryQuestion2Page> {
+class _LifeDiaryQuestion2PageState extends State<LifeDiaryQuestion2Page> {
   static const List<String> allOldSelves = [
     '수치심',
     '죄책감',
@@ -29,16 +27,17 @@ class _LifeDiaryQuestion2PageState
     '죽음의 공포',
   ];
 
-  final TextEditingController confessionController =
-      TextEditingController();
+  final TextEditingController confessionController = TextEditingController();
   late final List<String> confessionQueue;
   final List<String> completedOldSelves = [];
   int currentIndex = 0;
   String? guidanceMessage;
 
-  bool get q2AllComplete => confessionQueue.isNotEmpty &&
+  bool get q2AllComplete =>
+      confessionQueue.isNotEmpty &&
       confessionQueue.every(
-        (oldSelf) => currentLifeDiaryDraft.q2CompletedOldSelves.contains(oldSelf),
+        (oldSelf) =>
+            currentLifeDiaryDraft.q2CompletedOldSelves.contains(oldSelf),
       );
 
   @override
@@ -129,8 +128,7 @@ class _LifeDiaryQuestion2PageState
     var prefixLength = 0;
     while (prefixLength < typed.length &&
         prefixLength < expected.length &&
-        typed.codeUnitAt(prefixLength) ==
-            expected.codeUnitAt(prefixLength)) {
+        typed.codeUnitAt(prefixLength) == expected.codeUnitAt(prefixLength)) {
       prefixLength++;
     }
 
@@ -189,10 +187,10 @@ class _LifeDiaryQuestion2PageState
     final detected = detectedOldSelf(typed);
     if (detected != null && detected != expectedOldSelf) {
       final detectedSentence = confessionSentence(detected);
-      final isNewDiscovery = !confessionQueue.contains(detected) &&
+      final isNewDiscovery =
+          !confessionQueue.contains(detected) &&
           !completedOldSelves.contains(detected);
-      if (isNewDiscovery &&
-          typedNormalized == normalized(detectedSentence)) {
+      if (isNewDiscovery && typedNormalized == normalized(detectedSentence)) {
         final shouldAdd = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
@@ -205,9 +203,7 @@ class _LifeDiaryQuestion2PageState
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: Text(
-                  '${confessionName(expectedOldSelf)} 문장을 다시 기록합니다',
-                ),
+                child: Text('${confessionName(expectedOldSelf)} 문장을 다시 기록합니다'),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(context, true),
@@ -274,9 +270,8 @@ class _LifeDiaryQuestion2PageState
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => LifeDiaryQuestion3Page(
-          diaryDate: widget.diaryDate,
-        ),
+        builder: (context) =>
+            LifeDiaryQuestion3Page(diaryDate: widget.diaryDate),
       ),
     );
   }
@@ -311,18 +306,25 @@ class _LifeDiaryQuestion2PageState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(formatDate(widget.diaryDate),
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.grey)),
+                Text(
+                  formatDate(widget.diaryDate),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.grey),
+                ),
                 const SizedBox(height: 8),
-                Text('시즌 1 · 1/50회 · 질문 2/7',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.bold)),
+                Text(
+                  '${currentLifeDiaryDraft.progressLabel} · 질문 2/7',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const SizedBox(height: 28),
-                const Text('2번 기록을 완료했습니다.',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                const Text(
+                  '2번 기록을 완료했습니다.',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 16),
                 const Text('기록한 내용은 최종 완성 전까지 유지됩니다.'),
                 const SizedBox(height: 18),
@@ -330,10 +332,12 @@ class _LifeDiaryQuestion2PageState
                   spacing: 8,
                   runSpacing: 8,
                   children: confessionQueue
-                      .map((oldSelf) => Chip(
-                            avatar: const Icon(Icons.check, size: 18),
-                            label: Text(confessionName(oldSelf)),
-                          ))
+                      .map(
+                        (oldSelf) => Chip(
+                          avatar: const Icon(Icons.check, size: 18),
+                          label: Text(confessionName(oldSelf)),
+                        ),
+                      )
                       .toList(),
                 ),
                 const Spacer(),
@@ -343,13 +347,14 @@ class _LifeDiaryQuestion2PageState
                     onPressed: () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => LifeDiaryQuestion3Page(
-                          diaryDate: widget.diaryDate,
-                        ),
+                        builder: (_) =>
+                            LifeDiaryQuestion3Page(diaryDate: widget.diaryDate),
                       ),
                     ),
-                    child: const Text('3번으로 이동',
-                        style: TextStyle(fontSize: 18)),
+                    child: const Text(
+                      '3번으로 이동',
+                      style: TextStyle(fontSize: 18),
+                    ),
                   ),
                 ),
                 TextButton(
@@ -400,16 +405,13 @@ class _LifeDiaryQuestion2PageState
               Text(
                 formatDate(widget.diaryDate),
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey,
-                ),
+                style: const TextStyle(fontSize: 14, color: Colors.grey),
               ),
 
               const SizedBox(height: 8),
 
               Text(
-                '시즌 1 · 1/50회',
+                currentLifeDiaryDraft.progressLabel,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
@@ -451,10 +453,7 @@ class _LifeDiaryQuestion2PageState
                       const Text(
                         '연하게 보이는 문장을 따라 처음부터 끝까지 '
                         '직접 기록해 주세요.',
-                        style: TextStyle(
-                          fontSize: 16,
-                          height: 1.5,
-                        ),
+                        style: TextStyle(fontSize: 16, height: 1.5),
                       ),
 
                       const SizedBox(height: 24),
@@ -485,9 +484,7 @@ class _LifeDiaryQuestion2PageState
                           style: TextStyle(
                             fontSize: 18,
                             height: 1.6,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
+                            color: Theme.of(context).colorScheme.onSurface
                                 .withValues(alpha: 0.48),
                             fontWeight: FontWeight.w600,
                           ),
@@ -557,4 +554,3 @@ class _LifeDiaryQuestion2PageState
 // V0.16a
 // Life Diary Question 3
 // ============================================================
-

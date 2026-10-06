@@ -3,18 +3,13 @@ part of '../../main.dart';
 class LifeDiaryQuestion3Page extends StatefulWidget {
   final DateTime diaryDate;
 
-  const LifeDiaryQuestion3Page({
-    super.key,
-    required this.diaryDate,
-  });
+  const LifeDiaryQuestion3Page({super.key, required this.diaryDate});
 
   @override
-  State<LifeDiaryQuestion3Page> createState() =>
-      _LifeDiaryQuestion3PageState();
+  State<LifeDiaryQuestion3Page> createState() => _LifeDiaryQuestion3PageState();
 }
 
-class _LifeDiaryQuestion3PageState
-    extends State<LifeDiaryQuestion3Page> {
+class _LifeDiaryQuestion3PageState extends State<LifeDiaryQuestion3Page> {
   static const List<String> fruits = [
     '사랑',
     '기쁨',
@@ -33,16 +28,11 @@ class _LifeDiaryQuestion3PageState
   final List<String> realmQueue = [];
   final List<String> missingFruits = [];
 
-  final TextEditingController eventController =
-      TextEditingController();
-  final TextEditingController discoveryController =
-      TextEditingController();
-  final TextEditingController declarationController =
-      TextEditingController();
-  final TextEditingController enjoymentController =
-      TextEditingController();
-  final TextEditingController identityController =
-      TextEditingController();
+  final TextEditingController eventController = TextEditingController();
+  final TextEditingController discoveryController = TextEditingController();
+  final TextEditingController declarationController = TextEditingController();
+  final TextEditingController enjoymentController = TextEditingController();
+  final TextEditingController identityController = TextEditingController();
 
   int stage = 0;
   int realmIndex = 0;
@@ -60,7 +50,9 @@ class _LifeDiaryQuestion3PageState
     selectedRealms.addAll(draft.q3SelectedRealms);
     selectedFruits.addAll(draft.q3SelectedFruits);
     enjoymentRecords.addAll(
-      draft.q3EnjoymentRecords.map((record) => Map<String, String>.from(record)),
+      draft.q3EnjoymentRecords.map(
+        (record) => Map<String, String>.from(record),
+      ),
     );
     realmQueue.addAll(draft.q3RealmQueue);
     missingFruits.addAll(draft.q3MissingFruits);
@@ -87,7 +79,9 @@ class _LifeDiaryQuestion3PageState
       ..addAll(selectedFruits);
     draft.q3EnjoymentRecords
       ..clear()
-      ..addAll(enjoymentRecords.map((record) => Map<String, String>.from(record)));
+      ..addAll(
+        enjoymentRecords.map((record) => Map<String, String>.from(record)),
+      );
     draft.q3RealmQueue
       ..clear()
       ..addAll(realmQueue);
@@ -358,7 +352,7 @@ class _LifeDiaryQuestion3PageState
               ),
               const SizedBox(height: 8),
               Text(
-                '시즌 1 · 1/50회',
+                currentLifeDiaryDraft.progressLabel,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
@@ -377,11 +371,7 @@ class _LifeDiaryQuestion3PageState
                 ),
               ),
               const SizedBox(height: 20),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: _buildStage(),
-                ),
-              ),
+              Expanded(child: SingleChildScrollView(child: _buildStage())),
             ],
           ),
         ),
@@ -440,12 +430,12 @@ class _LifeDiaryQuestion3PageState
           onChanged: noKingdomEnjoymentToday
               ? null
               : (value) {
-            setState(() {
-              value == true
-                  ? selectedRealms.add('내 안')
-                  : selectedRealms.remove('내 안');
-            });
-          },
+                  setState(() {
+                    value == true
+                        ? selectedRealms.add('내 안')
+                        : selectedRealms.remove('내 안');
+                  });
+                },
         ),
         CheckboxListTile(
           value: selectedRealms.contains('공동체·관계 안'),
@@ -455,23 +445,19 @@ class _LifeDiaryQuestion3PageState
           onChanged: noKingdomEnjoymentToday
               ? null
               : (value) {
-            setState(() {
-              value == true
-                  ? selectedRealms.add('공동체·관계 안')
-                  : selectedRealms.remove('공동체·관계 안');
-            });
-          },
+                  setState(() {
+                    value == true
+                        ? selectedRealms.add('공동체·관계 안')
+                        : selectedRealms.remove('공동체·관계 안');
+                  });
+                },
         ),
         const SizedBox(height: 12),
         const Divider(),
         CheckboxListTile(
           value: noKingdomEnjoymentToday,
-          title: const Text(
-            '생명일기 3번에 기록할 것이 없다면',
-          ),
-          subtitle: const Text(
-            '아홉 가지 성령의 열매를 모두 기록합니다.',
-          ),
+          title: const Text('생명일기 3번에 기록할 것이 없다면'),
+          subtitle: const Text('아홉 가지 성령의 열매를 모두 기록합니다.'),
           controlAffinity: ListTileControlAffinity.leading,
           contentPadding: EdgeInsets.zero,
           onChanged: (value) {
@@ -487,14 +473,11 @@ class _LifeDiaryQuestion3PageState
         SizedBox(
           height: 56,
           child: FilledButton(
-            onPressed: selectedRealms.isEmpty &&
-                    !noKingdomEnjoymentToday
+            onPressed: selectedRealms.isEmpty && !noKingdomEnjoymentToday
                 ? null
                 : beginRecords,
             child: Text(
-              noKingdomEnjoymentToday
-                  ? '아홉 가지 열매 기록하기'
-                  : '구체적으로 기록하기',
+              noKingdomEnjoymentToday ? '아홉 가지 열매 기록하기' : '구체적으로 기록하기',
               style: const TextStyle(fontSize: 18),
             ),
           ),
@@ -544,9 +527,7 @@ class _LifeDiaryQuestion3PageState
           child: FilledButton(
             onPressed: entryIsComplete ? saveCurrentRecord : null,
             child: Text(
-              realmIndex < realmQueue.length - 1
-                  ? '다음 영역 기록하기'
-                  : '성령의 열매 확인하기',
+              realmIndex < realmQueue.length - 1 ? '다음 영역 기록하기' : '성령의 열매 확인하기',
               style: const TextStyle(fontSize: 18),
             ),
           ),
@@ -565,9 +546,10 @@ class _LifeDiaryQuestion3PageState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(title,
-              style: const TextStyle(
-                  fontSize: 17, fontWeight: FontWeight.w600)),
+          Text(
+            title,
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+          ),
           const SizedBox(height: 8),
           TextField(
             controller: controller,
@@ -591,7 +573,10 @@ class _LifeDiaryQuestion3PageState
         const Text(
           '기록한 과정에서 어떤 성령의 열매가 나타났나요?',
           style: TextStyle(
-              fontSize: 24, fontWeight: FontWeight.bold, height: 1.4),
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            height: 1.4,
+          ),
         ),
         const SizedBox(height: 12),
         const Text(
@@ -637,8 +622,7 @@ class _LifeDiaryQuestion3PageState
             onPressed: selectedFruits.isEmpty && !noSpecificFruit
                 ? null
                 : prepareMissingFruits,
-            child: const Text('선택하지 않은 열매 확인',
-                style: TextStyle(fontSize: 18)),
+            child: const Text('선택하지 않은 열매 확인', style: TextStyle(fontSize: 18)),
           ),
         ),
       ],
@@ -656,15 +640,18 @@ class _LifeDiaryQuestion3PageState
               ? '아홉 가지 성령의 열매를 고백합니다.'
               : '오늘 기록하지 않은 열매를 고백합니다.',
           style: const TextStyle(
-              fontSize: 24, fontWeight: FontWeight.bold, height: 1.4),
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            height: 1.4,
+          ),
         ),
         const SizedBox(height: 12),
         Text(
           noKingdomEnjoymentToday
               ? '오늘 구체적인 누림으로 기록할 것이 없다면 '
-                  '아홉 가지 열매를 한 가지씩 모두 직접 기록합니다.'
+                    '아홉 가지 열매를 한 가지씩 모두 직접 기록합니다.'
               : '구체적인 사건으로 기록하지 않은 열매도 한 가지씩 '
-                  '직접 고백하고 선언해 주세요.',
+                    '직접 고백하고 선언해 주세요.',
           style: const TextStyle(fontSize: 16, height: 1.5),
         ),
         const SizedBox(height: 24),
@@ -680,9 +667,7 @@ class _LifeDiaryQuestion3PageState
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Theme.of(context)
-                .colorScheme
-                .surfaceContainerHighest
+            color: Theme.of(context).colorScheme.surfaceContainerHighest
                 .withValues(alpha: 0.55),
             borderRadius: BorderRadius.circular(16),
           ),
@@ -691,9 +676,7 @@ class _LifeDiaryQuestion3PageState
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 20,
-              color: Theme.of(context)
-                  .colorScheme
-                  .onSurface
+              color: Theme.of(context).colorScheme.onSurface
                   .withValues(alpha: 0.48),
               fontWeight: FontWeight.w600,
             ),
@@ -748,15 +731,18 @@ class _LifeDiaryQuestion3PageState
         const Text(
           '오늘 이루어진 하나님 나라를 확인합니다.',
           style: TextStyle(
-              fontSize: 24, fontWeight: FontWeight.bold, height: 1.4),
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            height: 1.4,
+          ),
         ),
         const SizedBox(height: 16),
         Text(
           noKingdomEnjoymentToday
               ? '오늘 구체적으로 기록할 누림은 없었지만, '
-                  '아홉 가지 성령의 열매를 모두 고백하고 선언했습니다.'
+                    '아홉 가지 성령의 열매를 모두 고백하고 선언했습니다.'
               : '오늘 내 안과 공동체·관계 안에서 이루어진 하나님 나라를 '
-                  '발견하고 고백하며 누렸습니다.',
+                    '발견하고 고백하며 누렸습니다.',
           style: const TextStyle(fontSize: 16, height: 1.5),
         ),
         const SizedBox(height: 24),
@@ -770,9 +756,13 @@ class _LifeDiaryQuestion3PageState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(record['realm'] ?? '',
-                        style: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold)),
+                    Text(
+                      record['realm'] ?? '',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const SizedBox(height: 10),
                     Text('사건·상황\n${record['event'] ?? ''}'),
                     const SizedBox(height: 8),
@@ -806,9 +796,7 @@ class _LifeDiaryQuestion3PageState
                 experienced ? Icons.favorite : Icons.record_voice_over,
                 size: 18,
               ),
-              label: Text(
-                experienced ? '$fruit · 누림 기록' : '$fruit · 고백·선언',
-              ),
+              label: Text(experienced ? '$fruit · 누림 기록' : '$fruit · 고백·선언'),
             );
           }).toList(),
         ),
@@ -821,9 +809,9 @@ class _LifeDiaryQuestion3PageState
             saveQ3Draft();
           },
           icon: const Icon(Icons.edit_note),
-          label: Text(noKingdomEnjoymentToday
-              ? '3번 기록 방법 다시 선택하기'
-              : '성령의 열매 선택 수정하기'),
+          label: Text(
+            noKingdomEnjoymentToday ? '3번 기록 방법 다시 선택하기' : '성령의 열매 선택 수정하기',
+          ),
         ),
         const SizedBox(height: 32),
         SizedBox(
@@ -834,14 +822,12 @@ class _LifeDiaryQuestion3PageState
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => LifeDiaryQuestion4Page(
-                    diaryDate: widget.diaryDate,
-                  ),
+                  builder: (context) =>
+                      LifeDiaryQuestion4Page(diaryDate: widget.diaryDate),
                 ),
               );
             },
-            child: const Text('4번으로 이동',
-                style: TextStyle(fontSize: 18)),
+            child: const Text('4번으로 이동', style: TextStyle(fontSize: 18)),
           ),
         ),
       ],

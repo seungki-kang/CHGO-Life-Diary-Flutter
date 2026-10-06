@@ -69,6 +69,30 @@ void main() {
     expect(repository.deletedEntryId, 'entry-1');
     expect(find.text('아직 완성된 생명일기가 없습니다.'), findsOneWidget);
   });
+
+  testWidgets('shows deleted entries by filter and restores one', (
+    tester,
+  ) async {
+    final deleted = _entry(status: LifeDiaryEntryStatus.deleted);
+    final repository = _FakeRepository([deleted]);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: LifeDiaryHistoryPage(
+          repository: repository,
+          ownerUserId: 'owner',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('삭제됨'));
+    await tester.pumpAndSettle();
+    expect(find.text('복구'), findsOneWidget);
+
+    await tester.tap(find.text('복구'));
+    await tester.pumpAndSettle();
+    expect(repository.restoredEntryId, 'entry-1');
+  });
 }
 
 class _FakeRepository implements LifeDiaryRepository {
@@ -76,6 +100,7 @@ class _FakeRepository implements LifeDiaryRepository {
 
   final List<LifeDiaryEntry> entries;
   String? deletedEntryId;
+  String? restoredEntryId;
 
   @override
   Future<List<LifeDiaryEntry>> findByOwner(String ownerUserId) async => entries;
@@ -93,16 +118,28 @@ class _FakeRepository implements LifeDiaryRepository {
   }
 
   @override
+  Future<void> restore(String entryId) async {
+    restoredEntryId = entryId;
+    final index = entries.indexWhere((entry) => entry.entryId == entryId);
+    if (index < 0) return;
+    final entry = entries[index];
+    entries[index] = _entry(status: LifeDiaryEntryStatus.completed);
+    assert(entry.entryId == entries[index].entryId);
+  }
+
+  @override
   Future<void> close() async {}
 }
 
-LifeDiaryEntry _entry() => LifeDiaryEntry(
+LifeDiaryEntry _entry({
+  LifeDiaryEntryStatus status = LifeDiaryEntryStatus.completed,
+}) => LifeDiaryEntry(
   entryId: 'entry-1',
   ownerUserId: 'owner',
   seasonNumber: 1,
   sessionNumber: 1,
   entryDate: DateTime(2026, 10, 6),
-  status: LifeDiaryEntryStatus.completed,
+  status: status,
   canonicalVersion: '1.0.0',
   questions: LifeDiaryQuestions(
     q1: Q1Payload(narrative: 'record', oldPersonIds: const ['JL-OLD-01']),
