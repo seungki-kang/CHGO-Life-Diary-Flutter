@@ -1,7 +1,6 @@
 part of '../main.dart';
 
-final LifeDiarySessionDraft currentLifeDiaryDraft =
-    LifeDiarySessionDraft();
+final LifeDiarySessionDraft currentLifeDiaryDraft = LifeDiarySessionDraft();
 late final LifeDiaryDraftStore lifeDiaryDraftStore;
 late final SqliteLifeDiaryRepository lifeDiaryRepository;
 final LifeDiaryEntryFactory lifeDiaryEntryFactory = LifeDiaryEntryFactory();
@@ -12,19 +11,21 @@ void persistCurrentLifeDiaryDraft() {
   final date = currentLifeDiaryDraft.diaryDate;
   if (date == null) return;
   final payload = currentLifeDiaryDraft.toJson();
-  _draftWrite = _draftWrite.then((_) async {
-    await lifeDiaryDraftStore.save(date, payload);
-    lifeDiaryLogger.debug('life_diary.draft_saved', {
-      'operation': 'UPSERT',
-      'source': 'LOCAL_SQLITE',
-    });
-  }).catchError((Object error, StackTrace stackTrace) {
-    lifeDiaryLogger.error('life_diary.draft_save_failed', {
-      'operation': 'UPSERT',
-      'source': 'LOCAL_SQLITE',
-      'error_code': error.runtimeType.toString(),
-    });
-  });
+  _draftWrite = _draftWrite
+      .then((_) async {
+        await lifeDiaryDraftStore.save(date, payload);
+        lifeDiaryLogger.debug('life_diary.draft_saved', {
+          'operation': 'UPSERT',
+          'source': 'LOCAL_SQLITE',
+        });
+      })
+      .catchError((Object error, StackTrace stackTrace) {
+        lifeDiaryLogger.error('life_diary.draft_save_failed', {
+          'operation': 'UPSERT',
+          'source': 'LOCAL_SQLITE',
+          'error_code': error.runtimeType.toString(),
+        });
+      });
 }
 
 Future<bool> restoreLifeDiaryDraft(DateTime date) async {
@@ -61,30 +62,35 @@ Future<void> showLifeDiaryQuestionNavigator(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text('생명일기 문항 이동',
-                style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold)),
+            const Text(
+              '생명일기 문항 이동',
+              style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 6),
             const Text('최종 완성 전까지 작성한 내용은 지워지지 않습니다.'),
             const SizedBox(height: 14),
             ...List.generate(7, (index) {
               final number = index + 1;
-              final q1Ready = currentLifeDiaryDraft.q1NoOldSelf ||
+              final q1Ready =
+                  currentLifeDiaryDraft.q1NoOldSelf ||
                   currentLifeDiaryDraft.q1OldSelves.isNotEmpty;
               final available = number <= 7 && (number != 2 || q1Ready);
               return ListTile(
                 leading: CircleAvatar(child: Text('$number')),
-                title: Text(number == currentQuestion
-                    ? '$number번 · 현재 문항'
-                    : available
-                        ? '$number번으로 이동'
-                        : number == 2
-                            ? '2번 · 먼저 1번을 기록해 주세요'
-                            : '$number번 · 준비 중'),
+                title: Text(
+                  number == currentQuestion
+                      ? '$number번 · 현재 문항'
+                      : available
+                      ? '$number번으로 이동'
+                      : number == 2
+                      ? '2번 · 먼저 1번을 기록해 주세요'
+                      : '$number번 · 준비 중',
+                ),
                 trailing: number == currentQuestion
                     ? const Icon(Icons.check_circle)
                     : available
-                        ? const Icon(Icons.chevron_right)
-                        : const Icon(Icons.lock_outline),
+                    ? const Icon(Icons.chevron_right)
+                    : const Icon(Icons.lock_outline),
                 enabled: available && number != currentQuestion,
                 onTap: !available || number == currentQuestion
                     ? null
@@ -97,10 +103,9 @@ Future<void> showLifeDiaryQuestionNavigator(
                         } else if (number == 2) {
                           page = LifeDiaryQuestion2Page(
                             diaryDate: diaryDate,
-                            selectedOldSelves:
-                                currentLifeDiaryDraft.q1OldSelves.toList(),
-                            noOldSelfToday:
-                                currentLifeDiaryDraft.q1NoOldSelf,
+                            selectedOldSelves: currentLifeDiaryDraft.q1OldSelves
+                                .toList(),
+                            noOldSelfToday: currentLifeDiaryDraft.q1NoOldSelf,
                           );
                         } else if (number == 3) {
                           page = LifeDiaryQuestion3Page(diaryDate: diaryDate);
@@ -149,9 +154,7 @@ class ChgoLifeDiaryApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'CHGO Life Diary',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.indigo,
-        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
         useMaterial3: true,
       ),
       home: const LifeDiaryStartPage(),
@@ -170,10 +173,7 @@ class LifeDiaryStartPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('CHGO Life Diary'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('CHGO Life Diary'), centerTitle: true),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -181,18 +181,12 @@ class LifeDiaryStartPage extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(
-                  Icons.menu_book_rounded,
-                  size: 72,
-                ),
+                const Icon(Icons.menu_book_rounded, size: 72),
                 const SizedBox(height: 24),
 
                 const Text(
                   '생명일기',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
                 ),
 
                 const SizedBox(height: 32),
@@ -201,10 +195,7 @@ class LifeDiaryStartPage extends StatelessWidget {
                   '생명일기의 모든 과정은\n'
                   '성령의 역사입니다.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 18,
-                    height: 1.6,
-                  ),
+                  style: TextStyle(fontSize: 18, height: 1.6),
                 ),
 
                 const SizedBox(height: 16),
@@ -213,10 +204,7 @@ class LifeDiaryStartPage extends StatelessWidget {
                   '성령을 의지하며\n'
                   '자신의 내면과 삶을 바라봅니다.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16,
-                    height: 1.6,
-                  ),
+                  style: TextStyle(fontSize: 16, height: 1.6),
                 ),
 
                 const SizedBox(height: 48),
@@ -229,8 +217,7 @@ class LifeDiaryStartPage extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) =>
-                              const LifeDiaryDatePage(),
+                          builder: (context) => const LifeDiaryDatePage(),
                         ),
                       );
                     },
@@ -254,6 +241,7 @@ class LifeDiaryStartPage extends StatelessWidget {
                           builder: (_) => LifeDiaryHistoryPage(
                             repository: lifeDiaryRepository,
                             ownerUserId: lifeDiaryEntryFactory.ownerUserId,
+                            logger: lifeDiaryLogger,
                           ),
                         ),
                       );
@@ -270,10 +258,7 @@ class LifeDiaryStartPage extends StatelessWidget {
 
                 const Text(
                   'Flutter V0.17a',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
                 ),
               ],
             ),
@@ -292,8 +277,7 @@ class LifeDiaryDatePage extends StatefulWidget {
   const LifeDiaryDatePage({super.key});
 
   @override
-  State<LifeDiaryDatePage> createState() =>
-      _LifeDiaryDatePageState();
+  State<LifeDiaryDatePage> createState() => _LifeDiaryDatePageState();
 }
 
 class _LifeDiaryDatePageState extends State<LifeDiaryDatePage> {
@@ -312,11 +296,7 @@ class _LifeDiaryDatePageState extends State<LifeDiaryDatePage> {
       firstDate: DateTime(2000, 1, 1),
 
       // 미래 날짜 선택 금지
-      lastDate: DateTime(
-        now.year,
-        now.month,
-        now.day,
-      ),
+      lastDate: DateTime(now.year, now.month, now.day),
 
       helpText: '생명일기 날짜 선택',
       cancelText: '취소',
@@ -333,10 +313,7 @@ class _LifeDiaryDatePageState extends State<LifeDiaryDatePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('생명일기'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('생명일기'), centerTitle: true),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -352,9 +329,7 @@ class _LifeDiaryDatePageState extends State<LifeDiaryDatePage> {
                     vertical: 9,
                   ),
                   decoration: BoxDecoration(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .primaryContainer,
+                    color: Theme.of(context).colorScheme.primaryContainer,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -362,9 +337,7 @@ class _LifeDiaryDatePageState extends State<LifeDiaryDatePage> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onPrimaryContainer,
+                      color: Theme.of(context).colorScheme.onPrimaryContainer,
                     ),
                   ),
                 ),
@@ -388,27 +361,19 @@ class _LifeDiaryDatePageState extends State<LifeDiaryDatePage> {
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
                   border: Border.all(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .outlineVariant,
+                    color: Theme.of(context).colorScheme.outlineVariant,
                   ),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Column(
                   children: [
-                    const Icon(
-                      Icons.calendar_month_rounded,
-                      size: 48,
-                    ),
+                    const Icon(Icons.calendar_month_rounded, size: 48),
 
                     const SizedBox(height: 16),
 
                     const Text(
                       '선택한 날짜',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey,
-                      ),
+                      style: TextStyle(fontSize: 14, color: Colors.grey),
                     ),
 
                     const SizedBox(height: 8),
@@ -447,16 +412,11 @@ class _LifeDiaryDatePageState extends State<LifeDiaryDatePage> {
                       context,
                       MaterialPageRoute(
                         builder: (context) =>
-                            LifeDiaryReadyPage(
-                          diaryDate: selectedDate,
-                        ),
+                            LifeDiaryReadyPage(diaryDate: selectedDate),
                       ),
                     );
                   },
-                  child: const Text(
-                    '이 날짜로 시작',
-                    style: TextStyle(fontSize: 18),
-                  ),
+                  child: const Text('이 날짜로 시작', style: TextStyle(fontSize: 18)),
                 ),
               ),
             ],

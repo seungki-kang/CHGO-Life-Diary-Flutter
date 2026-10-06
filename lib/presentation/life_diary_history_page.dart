@@ -2,16 +2,20 @@ import 'package:flutter/material.dart';
 
 import '../data/life_diary_repository.dart';
 import '../domain/life_diary_models.dart';
+import '../core/observability/app_logger.dart';
+import 'life_diary_entry_editor_page.dart';
 
 class LifeDiaryHistoryPage extends StatefulWidget {
   const LifeDiaryHistoryPage({
     super.key,
     required this.repository,
     required this.ownerUserId,
+    this.logger,
   });
 
   final LifeDiaryRepository repository;
   final String ownerUserId;
+  final AppLogger? logger;
 
   @override
   State<LifeDiaryHistoryPage> createState() => _LifeDiaryHistoryPageState();
@@ -77,7 +81,9 @@ class _LifeDiaryHistoryPageState extends State<LifeDiaryHistoryPage> {
                       horizontal: 18,
                       vertical: 8,
                     ),
-                    leading: CircleAvatar(child: Text('${entry.sessionNumber}')),
+                    leading: CircleAvatar(
+                      child: Text('${entry.sessionNumber}'),
+                    ),
                     title: Text(
                       _formatDate(entry.entryDate),
                       style: const TextStyle(fontWeight: FontWeight.bold),
@@ -87,12 +93,19 @@ class _LifeDiaryHistoryPageState extends State<LifeDiaryHistoryPage> {
                       '${_statusLabel(entry.status)}',
                     ),
                     trailing: const Icon(Icons.chevron_right),
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => LifeDiaryDetailPage(entry: entry),
-                      ),
-                    ),
+                    onTap: () async {
+                      final changed = await Navigator.push<bool>(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => LifeDiaryDetailPage(
+                            entry: entry,
+                            repository: widget.repository,
+                            logger: widget.logger,
+                          ),
+                        ),
+                      );
+                      if (changed == true && mounted) await _refresh();
+                    },
                   ),
                 );
               },
@@ -104,25 +117,132 @@ class _LifeDiaryHistoryPageState extends State<LifeDiaryHistoryPage> {
   }
 }
 
-class LifeDiaryDetailPage extends StatelessWidget {
-  const LifeDiaryDetailPage({super.key, required this.entry});
+class LifeDiaryDetailPage extends StatefulWidget {
+  const LifeDiaryDetailPage({
+    super.key,
+    required this.entry,
+    required this.repository,
+    this.logger,
+  });
 
   final LifeDiaryEntry entry;
+  final LifeDiaryRepository repository;
+  final AppLogger? logger;
+
+  @override
+  State<LifeDiaryDetailPage> createState() => _LifeDiaryDetailPageState();
+}
+
+class _LifeDiaryDetailPageState extends State<LifeDiaryDetailPage> {
+  late LifeDiaryEntry entry;
+  bool _changed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    entry = widget.entry;
+  }
+
+  Future<void> _edit() async {
+    final reopened = LifeDiaryEntry(
+      entryId: entry.entryId,
+      ownerUserId: entry.ownerUserId,
+      seasonNumber: entry.seasonNumber,
+      sessionNumber: entry.sessionNumber,
+      entryDate: entry.entryDate,
+      status: LifeDiaryEntryStatus.reopened,
+      schemaVersion: entry.schemaVersion,
+      canonicalVersion: entry.canonicalVersion,
+      questions: entry.questions,
+    );
+    final updated = await Navigator.push<LifeDiaryEntry>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => LifeDiaryEntryEditorPage(
+          entry: reopened,
+          repository: widget.repository,
+        ),
+      ),
+    );
+    if (updated != null && mounted) {
+      widget.logger?.audit('life_diary.entry_reopened', {
+        'entry_id': entry.entryId,
+        'operation': 'REOPEN',
+        'source': 'LOCAL_SQLITE',
+      });
+      widget.logger?.audit('life_diary.entry_recompleted', {
+        'entry_id': updated.entryId,
+        'status': 'COMPLETED',
+        'operation': 'UPDATE',
+        'source': 'LOCAL_SQLITE',
+      });
+      setState(() {
+        entry = updated;
+        _changed = true;
+      });
+    }
+  }
+
+  Future<void> _delete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('생명일기를 삭제하시겠습니까?'),
+        content: const Text('삭제한 기록은 목록에서 보이지 않습니다.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('취소'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('삭제'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await widget.repository.tombstone(entry.entryId);
+    widget.logger?.audit('life_diary.entry_deleted', {
+      'entry_id': entry.entryId,
+      'operation': 'DELETE',
+      'source': 'LOCAL_SQLITE',
+    });
+    if (mounted) Navigator.pop(context, true);
+  }
 
   @override
   Widget build(BuildContext context) {
     final q = entry.questions;
     return Scaffold(
-      appBar: AppBar(title: const Text('생명일기 상세'), centerTitle: true),
+      appBar: AppBar(
+        leading: IconButton(
+          onPressed: () => Navigator.pop(context, _changed),
+          icon: const Icon(Icons.arrow_back),
+        ),
+        title: const Text('생명일기 상세'),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            tooltip: '수정',
+            onPressed: _edit,
+            icon: const Icon(Icons.edit_outlined),
+          ),
+          IconButton(
+            tooltip: '삭제',
+            onPressed: _delete,
+            icon: const Icon(Icons.delete_outline),
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(18),
         children: [
           Text(
             _formatDate(entry.entryDate),
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+            style: Theme.of(context).textTheme.headlineSmall
+                ?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 6),
           Text(
@@ -162,19 +282,15 @@ class LifeDiaryDetailPage extends StatelessWidget {
             title: '타인의 옛사람을 긍휼히 바라봅니다',
             body: q.q4.narrative,
           ),
-          _QuestionCard(
-            number: 5,
-            title: '성령님과의 교제',
-            body: q.q5.narrative,
-          ),
+          _QuestionCard(number: 5, title: '성령님과의 교제', body: q.q5.narrative),
           _QuestionCard(
             number: 6,
             title: '감사',
             body: q.q6.items.isEmpty
                 ? ''
                 : q.q6.items
-                    .map((item) => _parts([item.who, item.what, item.why]))
-                    .join('\n\n'),
+                      .map((item) => _parts([item.who, item.what, item.why]))
+                      .join('\n\n'),
           ),
           _QuestionCard(
             number: 7,
@@ -276,22 +392,24 @@ String _formatDate(DateTime date) =>
     '${date.year}년 ${date.month}월 ${date.day}일';
 
 String _statusLabel(LifeDiaryEntryStatus status) => switch (status) {
-      LifeDiaryEntryStatus.draft => '작성 중',
-      LifeDiaryEntryStatus.completed => '완성',
-      LifeDiaryEntryStatus.reopened => '다시 작성 중',
-      LifeDiaryEntryStatus.deleted => '삭제됨',
-    };
+  LifeDiaryEntryStatus.draft => '작성 중',
+  LifeDiaryEntryStatus.completed => '완성',
+  LifeDiaryEntryStatus.reopened => '다시 작성 중',
+  LifeDiaryEntryStatus.deleted => '삭제됨',
+};
 
 String _contextLabel(KingdomContext context) => switch (context) {
-      KingdomContext.inner => '내 안',
-      KingdomContext.community => '공동체·관계 안',
-    };
+  KingdomContext.inner => '내 안',
+  KingdomContext.community => '공동체·관계 안',
+};
 
 String _labels(Iterable<String> ids, Map<String, String> labels) =>
     ids.map((id) => labels[id] ?? id).join(', ');
 
-String _parts(Iterable<String> values) =>
-    values.map((value) => value.trim()).where((value) => value.isNotEmpty).join('\n\n');
+String _parts(Iterable<String> values) => values
+    .map((value) => value.trim())
+    .where((value) => value.isNotEmpty)
+    .join('\n\n');
 
 const _oldPersonLabels = <String, String>{
   'JL-OLD-01': '수치심',

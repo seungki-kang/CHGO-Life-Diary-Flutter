@@ -19,11 +19,14 @@ class SqliteLifeDiaryRepository implements LifeDiaryRepository {
       final now = _clock().toUtc().toIso8601String();
       final existing = await transaction.query(
         'life_diary_entry',
-        columns: const ['entry_id'],
+        columns: const ['entry_id', 'status'],
         where: 'entry_id = ?',
         whereArgs: [entry.entryId],
         limit: 1,
       );
+      final previousStatus = existing.isEmpty
+          ? null
+          : existing.first['status'] as String;
 
       if (existing.isEmpty) {
         await transaction.insert('life_diary_entry', {
@@ -80,6 +83,13 @@ LIMIT 1
 
       if (existing.isNotEmpty && changed) {
         await _appendEvent(transaction, entry.entryId, 'AUTOSAVED', now);
+      }
+      if (existing.isNotEmpty) {
+        final nextStatus = entry.status.wireValue;
+        if (previousStatus != nextStatus &&
+            (nextStatus == 'REOPENED' || nextStatus == 'COMPLETED')) {
+          await _appendEvent(transaction, entry.entryId, nextStatus, now);
+        }
       }
     });
   }

@@ -100,15 +100,45 @@ void main() {
     expect(events.single['metadata_json'], '{}');
     expect(events.single.values.join(' '), isNot(contains('민감한 원문')));
   });
+
+  test('LD-FL-006 records reopen and recomplete state transitions', () async {
+    final completed = buildEntry(status: LifeDiaryEntryStatus.completed);
+    await repository.save(completed);
+    await repository.save(buildEntry(status: LifeDiaryEntryStatus.reopened));
+    await repository.save(
+      buildEntry(
+        status: LifeDiaryEntryStatus.completed,
+        q1Narrative: '수정 완료한 기록',
+      ),
+    );
+
+    final loaded = await repository.findById('entry-001');
+    final events = await database.query(
+      'life_diary_revision_event',
+      where: 'entry_id = ?',
+      whereArgs: ['entry-001'],
+      orderBy: 'rowid',
+    );
+
+    expect(loaded!.status, LifeDiaryEntryStatus.completed);
+    expect(loaded.questions.q1.narrative, '수정 완료한 기록');
+    expect(
+      events.map((row) => row['event_type']),
+      containsAllInOrder(['CREATED', 'REOPENED', 'COMPLETED']),
+    );
+  });
 }
 
-LifeDiaryEntry buildEntry({String q1Narrative = '처음 기록'}) => LifeDiaryEntry(
+LifeDiaryEntry buildEntry({
+  String q1Narrative = '처음 기록',
+  LifeDiaryEntryStatus status = LifeDiaryEntryStatus.draft,
+}) => LifeDiaryEntry(
   entryId: 'entry-001',
   ownerUserId: 'owner-001',
   seasonNumber: 1,
   sessionNumber: 1,
   entryDate: DateTime(2026, 10, 6),
-  status: LifeDiaryEntryStatus.draft,
+  status: status,
   canonicalVersion: '1.0.0',
   questions: LifeDiaryQuestions(
     q1: Q1Payload(narrative: q1Narrative, oldPersonIds: const ['JL-OLD-01']),
