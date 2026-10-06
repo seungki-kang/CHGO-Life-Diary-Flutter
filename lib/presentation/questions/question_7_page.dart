@@ -91,11 +91,26 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
         sessionNumber: ((absoluteSession - 1) % 50) + 1,
       );
       await lifeDiaryRepository.save(entry);
+      lifeDiaryLogger.info('life_diary.completed_entry_saved', {
+        'entry_id': entry.entryId,
+        'status': entry.status.name.toUpperCase(),
+        'schema_version': entry.schemaVersion,
+        'canonical_version': entry.canonicalVersion,
+        'season_number': entry.seasonNumber,
+        'session_number': entry.sessionNumber,
+        'operation': 'UPSERT',
+        'source': 'LOCAL_SQLITE',
+      });
       if (!mounted) return;
       setState(() => stage = 3);
       saveQ7Draft();
     } catch (error) {
       currentLifeDiaryDraft.q7FinalCompleted = false;
+      lifeDiaryLogger.error('life_diary.completed_entry_save_failed', {
+        'operation': 'UPSERT',
+        'source': 'LOCAL_SQLITE',
+        'error_code': error.runtimeType.toString(),
+      });
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('최종 저장에 실패했습니다: $error')),
@@ -334,4 +349,3 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
 // V0.17a
 // Life Diary Question 6
 // ============================================================
-

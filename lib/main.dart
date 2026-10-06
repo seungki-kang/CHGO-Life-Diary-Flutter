@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'core/observability/app_logger.dart';
 import 'data/life_diary_database.dart';
 import 'data/life_diary_draft_store.dart';
 import 'data/life_diary_entry_factory.dart';

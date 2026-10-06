@@ -5,24 +5,43 @@ final LifeDiarySessionDraft currentLifeDiaryDraft =
 late final LifeDiaryDraftStore lifeDiaryDraftStore;
 late final SqliteLifeDiaryRepository lifeDiaryRepository;
 final LifeDiaryEntryFactory lifeDiaryEntryFactory = LifeDiaryEntryFactory();
+final AppLogger lifeDiaryLogger = AppLogger();
 Future<void> _draftWrite = Future.value();
 
 void persistCurrentLifeDiaryDraft() {
   final date = currentLifeDiaryDraft.diaryDate;
   if (date == null) return;
   final payload = currentLifeDiaryDraft.toJson();
-  _draftWrite = _draftWrite
-      .then((_) => lifeDiaryDraftStore.save(date, payload))
-      .catchError((Object error, StackTrace stackTrace) {
-    debugPrint('Life Diary draft save failed: $error');
+  _draftWrite = _draftWrite.then((_) async {
+    await lifeDiaryDraftStore.save(date, payload);
+    lifeDiaryLogger.debug('life_diary.draft_saved', {
+      'operation': 'UPSERT',
+      'source': 'LOCAL_SQLITE',
+    });
+  }).catchError((Object error, StackTrace stackTrace) {
+    lifeDiaryLogger.error('life_diary.draft_save_failed', {
+      'operation': 'UPSERT',
+      'source': 'LOCAL_SQLITE',
+      'error_code': error.runtimeType.toString(),
+    });
   });
 }
 
 Future<bool> restoreLifeDiaryDraft(DateTime date) async {
   await _draftWrite;
   final payload = await lifeDiaryDraftStore.load(date);
-  if (payload == null) return false;
+  if (payload == null) {
+    lifeDiaryLogger.debug('life_diary.draft_not_found', {
+      'operation': 'LOAD',
+      'source': 'LOCAL_SQLITE',
+    });
+    return false;
+  }
   currentLifeDiaryDraft.loadJson(date, payload);
+  lifeDiaryLogger.info('life_diary.draft_restored', {
+    'operation': 'LOAD',
+    'source': 'LOCAL_SQLITE',
+  });
   return true;
 }
 
@@ -111,6 +130,11 @@ Future<void> showLifeDiaryQuestionNavigator(
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final database = await LifeDiaryDatabase.open();
+  lifeDiaryLogger.info('life_diary.database_opened', {
+    'operation': 'OPEN',
+    'source': 'LOCAL_SQLITE',
+    'database_version': lifeDiaryDatabaseVersion,
+  });
   lifeDiaryDraftStore = LifeDiaryDraftStore(database);
   lifeDiaryRepository = SqliteLifeDiaryRepository(database);
   runApp(const ChgoLifeDiaryApp());
@@ -452,4 +476,3 @@ class _LifeDiaryDatePageState extends State<LifeDiaryDatePage> {
 // V0.03c
 // Life Diary Question 1
 // ============================================================
-
