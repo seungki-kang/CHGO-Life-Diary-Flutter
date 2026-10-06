@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'data/life_diary_database.dart';
+import 'data/life_diary_draft_store.dart';
+
 final TextInputFormatter keepMyRighteousnessWording =
     TextInputFormatter.withFunction((oldValue, newValue) {
   if (newValue.composing.isValid && !newValue.composing.isCollapsed) {
@@ -151,6 +154,147 @@ class LifeDiarySessionDraft {
   String q7CoachingNote = '';
   bool q7FinalCompleted = false;
 
+  Map<String, Object?> toJson() => {
+    'q1_detail': q1Detail,
+    'q1_old_selves': q1OldSelves.toList(),
+    'q1_no_old_self': q1NoOldSelf,
+    'q1_awareness': q1Awareness,
+    'q1_awareness_percent': q1AwarenessPercent,
+    'q1_step': q1Step,
+    'q2_completed_old_selves': q2CompletedOldSelves,
+    'q2_partial_text': q2PartialText,
+    'q2_current_index': q2CurrentIndex,
+    'q3_stage': q3Stage,
+    'q3_selected_realms': q3SelectedRealms.toList(),
+    'q3_selected_fruits': q3SelectedFruits.toList(),
+    'q3_enjoyment_records': q3EnjoymentRecords,
+    'q3_realm_queue': q3RealmQueue,
+    'q3_missing_fruits': q3MissingFruits,
+    'q3_event': q3Event,
+    'q3_discovery': q3Discovery,
+    'q3_declaration': q3Declaration,
+    'q3_enjoyment': q3Enjoyment,
+    'q3_identity': q3Identity,
+    'q3_realm_index': q3RealmIndex,
+    'q3_missing_index': q3MissingIndex,
+    'q3_no_enjoyment': q3NoEnjoyment,
+    'q3_no_specific_fruit': q3NoSpecificFruit,
+    'q3_editing_record_index': q3EditingRecordIndex,
+    'q4_stage': q4Stage,
+    'q4_person': q4Person,
+    'q4_event': q4Event,
+    'q4_response': q4Response,
+    'q4_love': q4Love,
+    'q4_declaration': q4Declaration,
+    'q4_additional_confession': q4AdditionalConfession,
+    'q4_no_record': q4NoRecord,
+    'q4_judged': q4Judged,
+    'q4_resisted': q4Resisted,
+    'q4_viewed_with_love': q4ViewedWithLove,
+    'q4_viewed_with_compassion': q4ViewedWithCompassion,
+    'q4_new_discovery_choice': q4NewDiscoveryChoice,
+    'q4_additional_old_selves': q4AdditionalOldSelves.toList(),
+    'q4_ownership_realized': q4OwnershipRealized,
+    'q4_declaration_index': q4DeclarationIndex,
+    'q4_additional_index': q4AdditionalIndex,
+    'q4_additional_queue': q4AdditionalQueue,
+    'q5_stage': q5Stage,
+    'q5_selection': q5Selection,
+    'q5_daily_record': q5DailyRecord,
+    'q5_word_record': q5WordRecord,
+    'q5_no_record_declaration': q5NoRecordDeclaration,
+    'q6_stage': q6Stage,
+    'q6_gratitudes': q6Gratitudes,
+    'q6_person': q6Person,
+    'q6_what': q6What,
+    'q6_why': q6Why,
+    'q6_situation_type': q6SituationType,
+    'q6_editing_index': q6EditingIndex,
+    'q7_stage': q7Stage,
+    'q7_action': q7Action,
+    'q7_reason': q7Reason,
+    'q7_coaching_requested': q7CoachingRequested,
+    'q7_coaching_note': q7CoachingNote,
+    'q7_final_completed': q7FinalCompleted,
+  };
+
+  void loadJson(DateTime date, Map<String, Object?> json) {
+    reset(date);
+    String text(String key) => json[key] as String? ?? '';
+    bool flag(String key) => json[key] as bool? ?? false;
+    int number(String key) => (json[key] as num?)?.toInt() ?? 0;
+    List<String> strings(String key) =>
+        (json[key] as List? ?? const []).map((value) => value.toString()).toList();
+
+    q1Detail = text('q1_detail');
+    q1OldSelves.addAll(strings('q1_old_selves'));
+    q1NoOldSelf = flag('q1_no_old_self');
+    q1Awareness = json['q1_awareness'] as String?;
+    q1AwarenessPercent = (json['q1_awareness_percent'] as num?)?.toDouble() ?? 50;
+    q1Step = json.containsKey('q1_step') ? number('q1_step') : 1;
+    q2CompletedOldSelves.addAll(strings('q2_completed_old_selves'));
+    q2PartialText = text('q2_partial_text');
+    q2CurrentIndex = number('q2_current_index');
+    q3Stage = number('q3_stage');
+    q3SelectedRealms.addAll(strings('q3_selected_realms'));
+    q3SelectedFruits.addAll(strings('q3_selected_fruits'));
+    q3EnjoymentRecords.addAll((json['q3_enjoyment_records'] as List? ?? const [])
+        .whereType<Map>().map((value) => value.map(
+              (key, item) => MapEntry(key.toString(), item.toString()),
+            )));
+    q3RealmQueue.addAll(strings('q3_realm_queue'));
+    q3MissingFruits.addAll(strings('q3_missing_fruits'));
+    q3Event = text('q3_event');
+    q3Discovery = text('q3_discovery');
+    q3Declaration = text('q3_declaration');
+    q3Enjoyment = text('q3_enjoyment');
+    q3Identity = text('q3_identity');
+    q3RealmIndex = number('q3_realm_index');
+    q3MissingIndex = number('q3_missing_index');
+    q3NoEnjoyment = flag('q3_no_enjoyment');
+    q3NoSpecificFruit = flag('q3_no_specific_fruit');
+    q3EditingRecordIndex = (json['q3_editing_record_index'] as num?)?.toInt();
+    q4Stage = number('q4_stage');
+    q4Person = text('q4_person');
+    q4Event = text('q4_event');
+    q4Response = text('q4_response');
+    q4Love = text('q4_love');
+    q4Declaration = text('q4_declaration');
+    q4AdditionalConfession = text('q4_additional_confession');
+    q4NoRecord = flag('q4_no_record');
+    q4Judged = flag('q4_judged');
+    q4Resisted = flag('q4_resisted');
+    q4ViewedWithLove = flag('q4_viewed_with_love');
+    q4ViewedWithCompassion = flag('q4_viewed_with_compassion');
+    q4NewDiscoveryChoice = json['q4_new_discovery_choice'] as String?;
+    q4AdditionalOldSelves.addAll(strings('q4_additional_old_selves'));
+    q4OwnershipRealized = flag('q4_ownership_realized');
+    q4DeclarationIndex = number('q4_declaration_index');
+    q4AdditionalIndex = number('q4_additional_index');
+    q4AdditionalQueue.addAll(strings('q4_additional_queue'));
+    q5Stage = number('q5_stage');
+    q5Selection = json['q5_selection'] as String?;
+    q5DailyRecord = text('q5_daily_record');
+    q5WordRecord = text('q5_word_record');
+    q5NoRecordDeclaration = text('q5_no_record_declaration');
+    q6Stage = number('q6_stage');
+    q6Gratitudes.addAll((json['q6_gratitudes'] as List? ?? const [])
+        .whereType<Map>().map((value) => value.map(
+              (key, item) => MapEntry(key.toString(), item.toString()),
+            )));
+    q6Person = text('q6_person');
+    q6What = text('q6_what');
+    q6Why = text('q6_why');
+    q6SituationType = json['q6_situation_type'] as String?;
+    q6EditingIndex = (json['q6_editing_index'] as num?)?.toInt();
+    q7Stage = number('q7_stage');
+    q7Action = text('q7_action');
+    q7Reason = text('q7_reason');
+    q7CoachingRequested = flag('q7_coaching_requested');
+    q7CoachingNote = text('q7_coaching_note');
+    q7FinalCompleted = flag('q7_final_completed');
+  }
+
   void reset(DateTime date) {
     diaryDate = date;
     q1Detail = '';
@@ -255,6 +399,7 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
     draft.q7Reason = reasonController.text;
     draft.q7CoachingRequested = coachingRequested;
     draft.q7CoachingNote = coachingNoteController.text;
+    persistCurrentLifeDiaryDraft();
   }
 
   bool get entryComplete =>
@@ -578,6 +723,7 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
     draft.q6Why = whyController.text;
     draft.q6SituationType = situationType;
     draft.q6EditingIndex = editingIndex;
+    persistCurrentLifeDiaryDraft();
   }
 
   String formatDate(DateTime date) =>
@@ -1085,6 +1231,7 @@ class _LifeDiaryQuestion5PageState extends State<LifeDiaryQuestion5Page> {
     draft.q5DailyRecord = dailyController.text;
     draft.q5WordRecord = wordController.text;
     draft.q5NoRecordDeclaration = noRecordController.text;
+    persistCurrentLifeDiaryDraft();
   }
 
   String formatDate(DateTime date) =>
@@ -1689,6 +1836,7 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
     draft.q4AdditionalQueue
       ..clear()
       ..addAll(additionalQueue);
+    persistCurrentLifeDiaryDraft();
   }
 
   String formatDate(DateTime date) =>
@@ -2374,6 +2522,27 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
 
 final LifeDiarySessionDraft currentLifeDiaryDraft =
     LifeDiarySessionDraft();
+late final LifeDiaryDraftStore lifeDiaryDraftStore;
+Future<void> _draftWrite = Future.value();
+
+void persistCurrentLifeDiaryDraft() {
+  final date = currentLifeDiaryDraft.diaryDate;
+  if (date == null) return;
+  final payload = currentLifeDiaryDraft.toJson();
+  _draftWrite = _draftWrite
+      .then((_) => lifeDiaryDraftStore.save(date, payload))
+      .catchError((Object error, StackTrace stackTrace) {
+    debugPrint('Life Diary draft save failed: $error');
+  });
+}
+
+Future<bool> restoreLifeDiaryDraft(DateTime date) async {
+  await _draftWrite;
+  final payload = await lifeDiaryDraftStore.load(date);
+  if (payload == null) return false;
+  currentLifeDiaryDraft.loadJson(date, payload);
+  return true;
+}
 
 Future<void> showLifeDiaryQuestionNavigator(
   BuildContext context,
@@ -2457,7 +2626,9 @@ Future<void> showLifeDiaryQuestionNavigator(
   );
 }
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  lifeDiaryDraftStore = LifeDiaryDraftStore(await LifeDiaryDatabase.open());
   runApp(const ChgoLifeDiaryApp());
 }
 
@@ -2733,15 +2904,12 @@ class _LifeDiaryDatePageState extends State<LifeDiaryDatePage> {
               SizedBox(
                 height: 56,
                 child: FilledButton(
-                  onPressed: () {
-                    final savedDate = currentLifeDiaryDraft.diaryDate;
-                    final sameDiary = savedDate != null &&
-                        savedDate.year == selectedDate.year &&
-                        savedDate.month == selectedDate.month &&
-                        savedDate.day == selectedDate.day;
-                    if (!sameDiary) {
+                  onPressed: () async {
+                    final restored = await restoreLifeDiaryDraft(selectedDate);
+                    if (!restored) {
                       currentLifeDiaryDraft.reset(selectedDate);
                     }
+                    if (!context.mounted) return;
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -2847,6 +3015,7 @@ class _LifeDiaryReadyPageState
       currentLifeDiaryDraft.q2CurrentIndex = 0;
       currentLifeDiaryDraft.q2PartialText = '';
     }
+    persistCurrentLifeDiaryDraft();
   }
 
   String formatDate(DateTime date) {
@@ -3446,6 +3615,7 @@ class _LifeDiaryQuestion2PageState
   void saveQ2Draft() {
     currentLifeDiaryDraft.q2CurrentIndex = currentIndex;
     currentLifeDiaryDraft.q2PartialText = confessionController.text;
+    persistCurrentLifeDiaryDraft();
   }
 
   @override
@@ -4042,6 +4212,7 @@ class _LifeDiaryQuestion3PageState
     draft.q3NoEnjoyment = noKingdomEnjoymentToday;
     draft.q3NoSpecificFruit = noSpecificFruit;
     draft.q3EditingRecordIndex = editingRecordIndex;
+    persistCurrentLifeDiaryDraft();
   }
 
   String formatDate(DateTime date) {

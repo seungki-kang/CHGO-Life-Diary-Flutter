@@ -1,0 +1,51 @@
+﻿import 'package:chgo_life_diary/data/life_diary_database.dart';
+import 'package:chgo_life_diary/data/life_diary_draft_store.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  sqfliteFfiInit();
+
+  late Database database;
+  late LifeDiaryDraftStore store;
+
+  setUp(() async {
+    database = await databaseFactoryFfi.openDatabase(inMemoryDatabasePath);
+    await LifeDiaryDatabase.createV001(database);
+    await LifeDiaryDatabase.createV002(database);
+    store = LifeDiaryDraftStore(database);
+  });
+
+  tearDown(() => database.close());
+
+  test('saves and restores a Q1-Q7 UI draft by date', () async {
+    final date = DateTime(2026, 10, 6);
+    final payload = <String, Object?>{
+      'q1_detail': 'daily record',
+      'q1_old_selves': ['shame'],
+      'q7_action': 'send a thank-you message',
+      'q7_final_completed': false,
+    };
+
+    await store.save(date, payload);
+
+    expect(await store.load(date), payload);
+  });
+
+  test('replaces the same date without duplicate drafts', () async {
+    final date = DateTime(2026, 10, 6);
+    await store.save(date, {'q1_detail': 'first'});
+    await store.save(date, {'q1_detail': 'updated'});
+
+    expect(await store.load(date), {'q1_detail': 'updated'});
+
+    final rows =
+        await database.rawQuery('SELECT COUNT(*) FROM life_diary_ui_draft');
+    expect(rows.single.values.single, 1);
+  });
+
+  test('returns null when the selected date has no draft', () async {
+    expect(await store.load(DateTime(2026, 10, 7)), isNull);
+  });
+}

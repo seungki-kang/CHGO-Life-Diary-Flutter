@@ -1,7 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 
 const lifeDiaryDatabaseName = 'chgo_life_diary.db';
-const lifeDiaryDatabaseVersion = 1;
+const lifeDiaryDatabaseVersion = 2;
 
 abstract final class LifeDiaryDatabase {
   static Future<Database> open() async {
@@ -10,7 +10,13 @@ abstract final class LifeDiaryDatabase {
       '$root/$lifeDiaryDatabaseName',
       version: lifeDiaryDatabaseVersion,
       onConfigure: (database) => database.execute('PRAGMA foreign_keys = ON'),
-      onCreate: (database, version) => createV001(database),
+      onCreate: (database, version) async {
+        await createV001(database);
+        await createV002(database);
+      },
+      onUpgrade: (database, oldVersion, newVersion) async {
+        if (oldVersion < 2) await createV002(database);
+      },
     );
   }
 
@@ -19,7 +25,23 @@ abstract final class LifeDiaryDatabase {
       await database.execute(statement);
     }
   }
+
+  static Future<void> createV002(DatabaseExecutor database) async {
+    for (final statement in v002Statements) {
+      await database.execute(statement);
+    }
+  }
 }
+
+const v002Statements = <String>[
+  '''
+CREATE TABLE IF NOT EXISTS life_diary_ui_draft (
+  draft_date TEXT PRIMARY KEY,
+  payload_json TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+)
+''',
+];
 
 const v001Statements = <String>[
   '''
