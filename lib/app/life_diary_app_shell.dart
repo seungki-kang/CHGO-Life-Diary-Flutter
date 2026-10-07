@@ -146,6 +146,8 @@ Future<void> showLifeDiaryQuestionNavigator(
   int currentQuestion, {
   VoidCallback? saveCurrent,
 }) async {
+  final completionValidator = const LifeDiaryCompletionValidator();
+  final draftJson = currentLifeDiaryDraft.toJson();
   await showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -169,19 +171,27 @@ Future<void> showLifeDiaryQuestionNavigator(
                   currentLifeDiaryDraft.q1NoOldSelf ||
                   currentLifeDiaryDraft.q1OldSelves.isNotEmpty;
               final available = number <= 7 && (number != 2 || q1Ready);
+              final completion = completionValidator.status(draftJson, number);
+              final statusLabel = switch (completion) {
+                LifeDiaryQuestionCompletion.complete => '완료',
+                LifeDiaryQuestionCompletion.inProgress => '작성 중',
+                LifeDiaryQuestionCompletion.notStarted => '미작성',
+              };
               return ListTile(
                 leading: CircleAvatar(child: Text('$number')),
                 title: Text(
                   number == currentQuestion
-                      ? '$number번 · 현재 문항'
+                      ? '$number번 · 현재 문항 · $statusLabel'
                       : available
-                      ? '$number번으로 이동'
+                      ? '$number번 · $statusLabel'
                       : number == 2
                       ? '2번 · 먼저 1번을 기록해 주세요'
                       : '$number번 · 준비 중',
                 ),
-                trailing: number == currentQuestion
-                    ? const Icon(Icons.check_circle)
+                trailing: completion == LifeDiaryQuestionCompletion.complete
+                    ? const Icon(Icons.check_circle, color: Colors.green)
+                    : number == currentQuestion
+                    ? const Icon(Icons.edit_outlined)
                     : available
                     ? const Icon(Icons.chevron_right)
                     : const Icon(Icons.lock_outline),

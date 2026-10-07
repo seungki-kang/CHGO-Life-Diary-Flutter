@@ -51,6 +51,14 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
   }
 
   Future<void> completeLifeDiary() async {
+    saveQ7Draft();
+    final issues = const LifeDiaryCompletionValidator().validate(
+      currentLifeDiaryDraft.toJson(),
+    );
+    if (issues.isNotEmpty) {
+      await _showCompletionIssues(issues);
+      return;
+    }
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -122,6 +130,56 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text('최종 저장에 실패했습니다: $error')));
     }
+  }
+
+  Future<void> _showCompletionIssues(
+    List<LifeDiaryCompletionIssue> issues,
+  ) async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('아직 완성하지 않은 문항이 있습니다'),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: issues
+                  .map(
+                    (issue) => ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: CircleAvatar(
+                        child: Text('${issue.questionNumber}'),
+                      ),
+                      title: Text('${issue.questionNumber}번 확인 필요'),
+                      subtitle: Text(issue.message),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        Navigator.pop(dialogContext);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => buildLifeDiaryQuestionPage(
+                              widget.diaryDate,
+                              issue.questionNumber,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('계속 작성'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
