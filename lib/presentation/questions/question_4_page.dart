@@ -27,8 +27,6 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
   ];
 
   final TextEditingController personController = TextEditingController();
-  final TextEditingController eventController = TextEditingController();
-  final TextEditingController responseController = TextEditingController();
   final TextEditingController loveController = TextEditingController();
   final TextEditingController declarationController = TextEditingController();
   final TextEditingController additionalConfessionController =
@@ -38,7 +36,6 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
   bool noRecordToday = false;
   bool judged = false;
   bool resisted = false;
-  bool viewedWithLove = false;
   bool viewedWithCompassion = false;
   String? newDiscoveryChoice;
   final Set<String> additionalOldSelves = {};
@@ -53,17 +50,15 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
     super.initState();
     final draft = currentLifeDiaryDraft;
     stage = draft.q4Stage;
-    personController.text = draft.q4Person;
-    eventController.text = draft.q4Event;
-    responseController.text = draft.q4Response;
-    loveController.text = draft.q4Love;
+    personController.text = _combinedText(draft.q4Person, draft.q4Event);
+    loveController.text = _combinedText(draft.q4Response, draft.q4Love);
     declarationController.text = draft.q4Declaration;
     additionalConfessionController.text = draft.q4AdditionalConfession;
     noRecordToday = draft.q4NoRecord;
     judged = draft.q4Judged;
     resisted = draft.q4Resisted;
-    viewedWithLove = draft.q4ViewedWithLove;
-    viewedWithCompassion = draft.q4ViewedWithCompassion;
+    viewedWithCompassion =
+        draft.q4ViewedWithCompassion || draft.q4ViewedWithLove;
     newDiscoveryChoice = draft.q4NewDiscoveryChoice;
     additionalOldSelves.addAll(draft.q4AdditionalOldSelves);
     acceptsOwnership = draft.q4OwnershipRealized;
@@ -76,15 +71,15 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
     final draft = currentLifeDiaryDraft;
     draft.q4Stage = stage;
     draft.q4Person = personController.text;
-    draft.q4Event = eventController.text;
-    draft.q4Response = responseController.text;
+    draft.q4Event = '';
+    draft.q4Response = '';
     draft.q4Love = loveController.text;
     draft.q4Declaration = declarationController.text;
     draft.q4AdditionalConfession = additionalConfessionController.text;
     draft.q4NoRecord = noRecordToday;
     draft.q4Judged = judged;
     draft.q4Resisted = resisted;
-    draft.q4ViewedWithLove = viewedWithLove;
+    draft.q4ViewedWithLove = false;
     draft.q4ViewedWithCompassion = viewedWithCompassion;
     draft.q4NewDiscoveryChoice = newDiscoveryChoice;
     draft.q4AdditionalOldSelves
@@ -101,6 +96,16 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
 
   String formatDate(DateTime date) =>
       '${date.year}년 ${date.month}월 ${date.day}일';
+
+  String _combinedText(String first, String second) {
+    final normalizedFirst = first.trim();
+    final normalizedSecond = second.trim();
+    if (normalizedFirst.isEmpty) return normalizedSecond;
+    if (normalizedSecond.isEmpty || normalizedSecond == normalizedFirst) {
+      return normalizedFirst;
+    }
+    return '$normalizedFirst\n$normalizedSecond';
+  }
 
   String normalized(String text) =>
       text.replaceAll(RegExp(r'\s+'), '').replaceAll(RegExp(r'[.。]+$'), '');
@@ -124,10 +129,8 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
 
   bool get eventComplete =>
       personController.text.trim().isNotEmpty &&
-      eventController.text.trim().isNotEmpty &&
-      responseController.text.trim().isNotEmpty &&
       loveController.text.trim().isNotEmpty &&
-      (judged || resisted || viewedWithLove || viewedWithCompassion);
+      (judged || resisted || viewedWithCompassion);
 
   void beginQuestion4() {
     if (noRecordToday) {
@@ -290,8 +293,6 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
   void dispose() {
     saveQ4Draft();
     personController.dispose();
-    eventController.dispose();
-    responseController.dispose();
     loveController.dispose();
     declarationController.dispose();
     additionalConfessionController.dispose();
@@ -390,7 +391,7 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
         ),
         const SizedBox(height: 12),
         const Text(
-          '다른 사람을 대했던 실제 사건과 내 반응, 예수님의 마음으로 바라본 과정을 자세히 기록해 주세요.',
+          '누구와 어떤 일이 있었는지, 그 사람을 하나님의 사랑과 긍휼로 어떻게 바라보았는지 기록해 주세요.',
           style: TextStyle(fontSize: 16, height: 1.5),
         ),
         const SizedBox(height: 20),
@@ -405,35 +406,13 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
           const SizedBox(height: 12),
           TextField(
             controller: personController,
-            onChanged: (_) => setState(() {}),
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              labelText: '관계',
-              hintText: '예: 배우자, 자녀, 가족, 교회 구성원, 직장 동료',
-            ),
-          ),
-          const SizedBox(height: 14),
-          TextField(
-            controller: eventController,
             minLines: 3,
             maxLines: 5,
             onChanged: (_) => setState(() {}),
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
-              labelText: '어떤 사건이 있었나요?',
-              hintText: '다른 사람의 옛사람이 드러난 상황을 자세히 기록해 주세요.',
-            ),
-          ),
-          const SizedBox(height: 14),
-          TextField(
-            controller: responseController,
-            minLines: 3,
-            maxLines: 5,
-            onChanged: (_) => setState(() {}),
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              labelText: '그때 내 안에서는 무엇이 일어났나요?',
-              hintText: '생각, 감정, 판단이나 저항을 구체적으로 기록해 주세요.',
+              labelText: '누구와 어떤 일이 있었는가?',
+              hintText: '상대방과 있었던 일을 함께 기록해 주세요.',
             ),
           ),
           const SizedBox(height: 14),
@@ -444,7 +423,7 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
             onChanged: (_) => setState(() {}),
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
-              labelText: '예수님의 마음으로 어떻게 바라보았나요?',
+              labelText: '하나님의 사랑과 긍휼로 바라보았는가?',
               hintText: '하나님의 사랑과 긍휼하심으로 바라본 과정을 기록해 주세요.',
             ),
           ),
@@ -460,13 +439,6 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
             value: resisted,
             title: const Text('저항이 일어났습니다.'),
             onChanged: (value) => setState(() => resisted = value ?? false),
-          ),
-          CheckboxListTile(
-            contentPadding: EdgeInsets.zero,
-            value: viewedWithLove,
-            title: const Text('하나님의 사랑으로 바라보았습니다.'),
-            onChanged: (value) =>
-                setState(() => viewedWithLove = value ?? false),
           ),
           CheckboxListTile(
             contentPadding: EdgeInsets.zero,
@@ -779,13 +751,9 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text('관계\n${personController.text}'),
+                  Text('누구와 어떤 일이 있었는가?\n${personController.text}'),
                   const SizedBox(height: 10),
-                  Text('사건\n${eventController.text}'),
-                  const SizedBox(height: 10),
-                  Text('내 안의 반응\n${responseController.text}'),
-                  const SizedBox(height: 10),
-                  Text('예수님의 마음으로 바라본 과정\n${loveController.text}'),
+                  Text('하나님의 사랑과 긍휼로 바라보았는가?\n${loveController.text}'),
                   const SizedBox(height: 12),
                   Wrap(
                     spacing: 8,
@@ -793,8 +761,6 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
                     children: [
                       if (judged) const Chip(label: Text('판단이 일어남')),
                       if (resisted) const Chip(label: Text('저항이 일어남')),
-                      if (viewedWithLove)
-                        const Chip(label: Text('하나님의 사랑으로 바라봄')),
                       if (viewedWithCompassion)
                         const Chip(label: Text('하나님의 긍휼로 바라봄')),
                     ],

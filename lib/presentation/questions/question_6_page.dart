@@ -12,6 +12,7 @@ class LifeDiaryQuestion6Page extends StatefulWidget {
 class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
   final TextEditingController personController = TextEditingController();
   final TextEditingController whatController = TextEditingController();
+  final FocusNode personFocusNode = FocusNode();
 
   final List<Map<String, String>> gratitudes = [];
   int stage = 0;
@@ -93,6 +94,11 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
       stage = gratitudes.length >= 3 ? 2 : 1;
     });
     saveQ6Draft();
+    if (stage == 1) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) personFocusNode.requestFocus();
+      });
+    }
   }
 
   void addAnotherGratitude() {
@@ -104,6 +110,9 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
       stage = 1;
     });
     saveQ6Draft();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) personFocusNode.requestFocus();
+    });
   }
 
   void editGratitude(int index) {
@@ -139,6 +148,7 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
     saveQ6Draft();
     personController.dispose();
     whatController.dispose();
+    personFocusNode.dispose();
     super.dispose();
   }
 
@@ -301,6 +311,7 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
         const SizedBox(height: 20),
         TextField(
           controller: personController,
+          focusNode: personFocusNode,
           onChanged: (_) {
             setState(() {});
             saveQ6Draft();

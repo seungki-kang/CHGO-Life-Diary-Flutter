@@ -45,8 +45,10 @@ class _LifeDiaryQuestion5PageState extends State<LifeDiaryQuestion5Page> {
   String formatDate(DateTime date) =>
       '${date.year}년 ${date.month}월 ${date.day}일';
 
-  String normalized(String text) =>
-      text.replaceAll(RegExp(r'\s+'), '').replaceAll(RegExp(r'[,.，。]+$'), '');
+  String normalized(String text) => text
+      .replaceAll(RegExp(r'\s+'), '')
+      .replaceAll(RegExp(r'[,，]'), '')
+      .replaceAll(RegExp(r'[,.，。]+$'), '');
 
   void beginSelectedRecord() {
     if (selection == null) return;

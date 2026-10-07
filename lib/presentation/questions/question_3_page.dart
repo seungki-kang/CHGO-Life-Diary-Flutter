@@ -29,9 +29,7 @@ class _LifeDiaryQuestion3PageState extends State<LifeDiaryQuestion3Page> {
   final List<String> missingFruits = [];
 
   final TextEditingController eventController = TextEditingController();
-  final TextEditingController discoveryController = TextEditingController();
   final TextEditingController declarationController = TextEditingController();
-  final TextEditingController enjoymentController = TextEditingController();
   final TextEditingController identityController = TextEditingController();
 
   int stage = 0;
@@ -56,10 +54,11 @@ class _LifeDiaryQuestion3PageState extends State<LifeDiaryQuestion3Page> {
     );
     realmQueue.addAll(draft.q3RealmQueue);
     missingFruits.addAll(draft.q3MissingFruits);
-    eventController.text = draft.q3Event;
-    discoveryController.text = draft.q3Discovery;
-    declarationController.text = draft.q3Declaration;
-    enjoymentController.text = draft.q3Enjoyment;
+    eventController.text = _combinedText(draft.q3Event, draft.q3Discovery);
+    declarationController.text = _combinedText(
+      draft.q3Declaration,
+      draft.q3Enjoyment,
+    );
     identityController.text = draft.q3Identity;
     realmIndex = draft.q3RealmIndex;
     missingIndex = draft.q3MissingIndex;
@@ -89,9 +88,9 @@ class _LifeDiaryQuestion3PageState extends State<LifeDiaryQuestion3Page> {
       ..clear()
       ..addAll(missingFruits);
     draft.q3Event = eventController.text;
-    draft.q3Discovery = discoveryController.text;
+    draft.q3Discovery = '';
     draft.q3Declaration = declarationController.text;
-    draft.q3Enjoyment = enjoymentController.text;
+    draft.q3Enjoyment = '';
     draft.q3Identity = identityController.text;
     draft.q3RealmIndex = realmIndex;
     draft.q3MissingIndex = missingIndex;
@@ -109,6 +108,16 @@ class _LifeDiaryQuestion3PageState extends State<LifeDiaryQuestion3Page> {
     return fruit == '평안(화평)' ? '평안' : fruit;
   }
 
+  String _combinedText(String first, String second) {
+    final normalizedFirst = first.trim();
+    final normalizedSecond = second.trim();
+    if (normalizedFirst.isEmpty) return normalizedSecond;
+    if (normalizedSecond.isEmpty || normalizedSecond == normalizedFirst) {
+      return normalizedFirst;
+    }
+    return '$normalizedFirst\n$normalizedSecond';
+  }
+
   String identitySentence(String fruit) {
     return '나는 ${declarationFruitName(fruit)}입니다.';
   }
@@ -121,9 +130,7 @@ class _LifeDiaryQuestion3PageState extends State<LifeDiaryQuestion3Page> {
 
   bool get entryIsComplete {
     return eventController.text.trim().isNotEmpty &&
-        discoveryController.text.trim().isNotEmpty &&
-        declarationController.text.trim().isNotEmpty &&
-        enjoymentController.text.trim().isNotEmpty;
+        declarationController.text.trim().isNotEmpty;
   }
 
   void beginRecords() {
@@ -153,9 +160,9 @@ class _LifeDiaryQuestion3PageState extends State<LifeDiaryQuestion3Page> {
     final record = <String, String>{
       'realm': realmQueue[realmIndex],
       'event': eventController.text.trim(),
-      'discovery': discoveryController.text.trim(),
+      'discovery': '',
       'declaration': declarationController.text.trim(),
-      'enjoyment': enjoymentController.text.trim(),
+      'enjoyment': '',
     };
     final editedIndex = editingRecordIndex;
     if (editedIndex != null && editedIndex < enjoymentRecords.length) {
@@ -165,9 +172,7 @@ class _LifeDiaryQuestion3PageState extends State<LifeDiaryQuestion3Page> {
     }
 
     eventController.clear();
-    discoveryController.clear();
     declarationController.clear();
-    enjoymentController.clear();
 
     setState(() {
       if (editedIndex != null) {
@@ -190,10 +195,14 @@ class _LifeDiaryQuestion3PageState extends State<LifeDiaryQuestion3Page> {
         ..clear()
         ..add(record['realm'] ?? '내 안');
       realmIndex = 0;
-      eventController.text = record['event'] ?? '';
-      discoveryController.text = record['discovery'] ?? '';
-      declarationController.text = record['declaration'] ?? '';
-      enjoymentController.text = record['enjoyment'] ?? '';
+      eventController.text = _combinedText(
+        record['event'] ?? '',
+        record['discovery'] ?? '',
+      );
+      declarationController.text = _combinedText(
+        record['declaration'] ?? '',
+        record['enjoyment'] ?? '',
+      );
       stage = 1;
     });
     saveQ3Draft();
@@ -242,9 +251,7 @@ class _LifeDiaryQuestion3PageState extends State<LifeDiaryQuestion3Page> {
   void dispose() {
     saveQ3Draft();
     eventController.dispose();
-    discoveryController.dispose();
     declarationController.dispose();
-    enjoymentController.dispose();
     identityController.dispose();
     super.dispose();
   }
@@ -502,24 +509,14 @@ class _LifeDiaryQuestion3PageState extends State<LifeDiaryQuestion3Page> {
         ),
         const SizedBox(height: 24),
         _recordField(
-          title: '1. 실제 사건·상황',
-          hint: '언제, 어디에서, 누구와 어떤 일이 있었는지 기록해 주세요.',
+          title: '1. 어떤 상황에서 하나님 나라를 발견하였는가?',
+          hint: '상황과 그 안에서 발견한 하나님 나라를 기록해 주세요.',
           controller: eventController,
         ),
         _recordField(
-          title: '2. 하나님 나라 발견',
-          hint: '그 사건에서 어떤 하나님 나라를 발견했는지 기록해 주세요.',
-          controller: discoveryController,
-        ),
-        _recordField(
-          title: '3. 고백·선포·선언',
-          hint: '그 순간 무엇이라고 고백하고 선포하고 선언했는지 기록해 주세요.',
+          title: '2. 고백·선포·선언하며 누렸는가?',
+          hint: '무엇을 고백·선포·선언했고 어떻게 누렸는지 기록해 주세요.',
           controller: declarationController,
-        ),
-        _recordField(
-          title: '4. 누림',
-          hint: '무엇을 느끼고 어떻게 하나님 나라를 누렸는지 기록해 주세요.',
-          controller: enjoymentController,
         ),
         const SizedBox(height: 8),
         SizedBox(
@@ -580,7 +577,7 @@ class _LifeDiaryQuestion3PageState extends State<LifeDiaryQuestion3Page> {
         ),
         const SizedBox(height: 12),
         const Text(
-          '사건과 발견, 고백·선포·선언, 누림의 과정을 돌아보며 '
+          '하나님 나라를 발견하고 고백·선포·선언하며 누린 과정을 돌아보며 '
           '관련된 열매를 모두 선택해 주세요.',
           style: TextStyle(fontSize: 16, height: 1.5),
         ),
@@ -764,13 +761,15 @@ class _LifeDiaryQuestion3PageState extends State<LifeDiaryQuestion3Page> {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    Text('사건·상황\n${record['event'] ?? ''}'),
+                    Text(
+                      '상황과 하나님 나라 발견\n'
+                      '${_combinedText(record['event'] ?? '', record['discovery'] ?? '')}',
+                    ),
                     const SizedBox(height: 8),
-                    Text('하나님 나라 발견\n${record['discovery'] ?? ''}'),
-                    const SizedBox(height: 8),
-                    Text('고백·선포·선언\n${record['declaration'] ?? ''}'),
-                    const SizedBox(height: 8),
-                    Text('누림\n${record['enjoyment'] ?? ''}'),
+                    Text(
+                      '고백·선포·선언과 누림\n'
+                      '${_combinedText(record['declaration'] ?? '', record['enjoyment'] ?? '')}',
+                    ),
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton.icon(
