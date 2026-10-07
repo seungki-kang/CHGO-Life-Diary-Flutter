@@ -34,6 +34,7 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
   }
 
   void saveQ6Draft() {
+    if (!_draftLifecycle.shouldPersist) return;
     final draft = currentLifeDiaryDraft;
     draft.q6Stage = stage;
     draft.q6Gratitudes

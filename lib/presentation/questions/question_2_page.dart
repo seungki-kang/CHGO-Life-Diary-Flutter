@@ -62,6 +62,7 @@ class _LifeDiaryQuestion2PageState extends State<LifeDiaryQuestion2Page> {
   }
 
   void saveQ2Draft() {
+    if (!_draftLifecycle.shouldPersist) return;
     currentLifeDiaryDraft.q2CurrentIndex = currentIndex;
     currentLifeDiaryDraft.q2PartialText = confessionController.text;
     persistCurrentLifeDiaryDraft();

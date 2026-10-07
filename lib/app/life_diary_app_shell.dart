@@ -6,8 +6,10 @@ late final SqliteLifeDiaryRepository lifeDiaryRepository;
 final LifeDiaryEntryFactory lifeDiaryEntryFactory = LifeDiaryEntryFactory();
 final AppLogger lifeDiaryLogger = AppLogger();
 Future<void> _draftWrite = Future.value();
+final LifeDiaryDraftLifecycle _draftLifecycle = LifeDiaryDraftLifecycle();
 
 void persistCurrentLifeDiaryDraft() {
+  if (!_draftLifecycle.shouldPersist) return;
   final date = currentLifeDiaryDraft.diaryDate;
   if (date == null) return;
   final payload = currentLifeDiaryDraft.toJson();
@@ -515,6 +517,7 @@ class _LifeDiaryDatePageState extends State<LifeDiaryDatePage> {
                 height: 56,
                 child: FilledButton(
                   onPressed: () async {
+                    _draftLifecycle.beginDraft();
                     final restored = await restoreLifeDiaryDraft(selectedDate);
                     if (!restored) {
                       currentLifeDiaryDraft.reset(

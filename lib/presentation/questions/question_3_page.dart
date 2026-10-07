@@ -68,6 +68,7 @@ class _LifeDiaryQuestion3PageState extends State<LifeDiaryQuestion3Page> {
   }
 
   void saveQ3Draft() {
+    if (!_draftLifecycle.shouldPersist) return;
     final draft = currentLifeDiaryDraft;
     draft.q3Stage = stage;
     draft.q3SelectedRealms

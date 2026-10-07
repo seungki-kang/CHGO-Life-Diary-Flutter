@@ -49,6 +49,7 @@ class _LifeDiaryReadyPageState extends State<LifeDiaryReadyPage> {
   }
 
   void saveQ1Draft() {
+    if (!_draftLifecycle.shouldPersist) return;
     final previousRoots = Set<String>.from(currentLifeDiaryDraft.q1OldSelves);
     final selectionChanged =
         previousRoots.length != selectedRoots.length ||

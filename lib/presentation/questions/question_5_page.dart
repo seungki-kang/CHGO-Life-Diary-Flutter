@@ -33,6 +33,7 @@ class _LifeDiaryQuestion5PageState extends State<LifeDiaryQuestion5Page> {
   }
 
   void saveQ5Draft() {
+    if (!_draftLifecycle.shouldPersist) return;
     final draft = currentLifeDiaryDraft;
     draft.q5Stage = stage;
     draft.q5Selection = selection;

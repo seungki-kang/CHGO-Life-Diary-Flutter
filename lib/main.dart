@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import 'core/observability/app_logger.dart';
 import 'application/life_diary_progress.dart';
+import 'application/life_diary_draft_lifecycle.dart';
 import 'data/life_diary_database.dart';
 import 'data/life_diary_draft_store.dart';
 import 'data/life_diary_entry_factory.dart';

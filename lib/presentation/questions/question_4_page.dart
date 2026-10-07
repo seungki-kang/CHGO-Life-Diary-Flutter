@@ -68,6 +68,7 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
   }
 
   void saveQ4Draft() {
+    if (!_draftLifecycle.shouldPersist) return;
     final draft = currentLifeDiaryDraft;
     draft.q4Stage = stage;
     draft.q4Person = personController.text;

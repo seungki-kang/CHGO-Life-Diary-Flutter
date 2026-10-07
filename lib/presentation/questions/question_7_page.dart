@@ -97,6 +97,7 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
         await _draftWrite;
         await lifeDiaryDraftStore.delete(widget.diaryDate);
         _draftFinalized = true;
+        _draftLifecycle.markCompletedEntryClosing();
         lifeDiaryLogger.info('life_diary.completed_draft_removed', {
           'entry_id': entry.entryId,
           'operation': 'DELETE',
@@ -414,8 +415,10 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
       SizedBox(
         height: 58,
         child: FilledButton.icon(
-          onPressed: () =>
-              Navigator.of(context).popUntil((route) => route.isFirst),
+          onPressed: () {
+            currentLifeDiaryDraft.reset(widget.diaryDate);
+            Navigator.of(context).popUntil((route) => route.isFirst);
+          },
           icon: const Icon(Icons.refresh),
           label: const Text(
             '처음으로 돌아가 새 생명일기 쓰기',
