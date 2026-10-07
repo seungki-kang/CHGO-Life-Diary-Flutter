@@ -19,10 +19,7 @@ class LifeDiaryEntryFactory {
     int sessionNumber = 1,
   }) {
     final normalizedDate = DateTime(date.year, date.month, date.day);
-    final oldPersonIds = _ids(
-      _strings(draft['q1_old_selves']),
-      _oldPersonIds,
-    );
+    final oldPersonIds = _ids(_strings(draft['q1_old_selves']), _oldPersonIds);
     final q2Ids = _ids(
       _strings(draft['q2_completed_old_selves']),
       _oldPersonIds,
@@ -30,20 +27,27 @@ class LifeDiaryEntryFactory {
     final contexts = _strings(draft['q3_selected_realms'])
         .map((value) => _kingdomContexts[value])
         .whereType<KingdomContext>();
-    final fruitIds = _ids(
-      _strings(draft['q3_selected_fruits']),
-      _fruitIds,
-    );
+    final fruitIds = _ids(_strings(draft['q3_selected_fruits']), _fruitIds);
     final gratitudeItems = _maps(draft['q6_gratitudes'])
-        .map((item) => GratitudeItem(
-              who: _text(item['person']),
-              what: _text(item['what']),
-              why: _text(item['why']),
-            ))
-        .where((item) => item.who.isNotEmpty || item.what.isNotEmpty || item.why.isNotEmpty);
+        .map(
+          (item) => GratitudeItem(
+            who: _text(item['person']),
+            what: _text(item['what']),
+            why: _text(item['why']),
+          ),
+        )
+        .where(
+          (item) =>
+              item.who.isNotEmpty ||
+              item.what.isNotEmpty ||
+              item.why.isNotEmpty,
+        );
 
     return LifeDiaryEntry(
-      entryId: 'JL-LD-LOCAL-${_compactDate(normalizedDate)}',
+      entryId:
+          'JL-LD-LOCAL-${_compactDate(normalizedDate)}-'
+          'S${seasonNumber.toString().padLeft(3, '0')}-'
+          'N${sessionNumber.toString().padLeft(2, '0')}',
       ownerUserId: ownerUserId,
       seasonNumber: seasonNumber,
       sessionNumber: sessionNumber,
@@ -93,12 +97,14 @@ class LifeDiaryEntryFactory {
           ]),
         ),
         q6: Q6Payload(items: gratitudeItems),
-        q7: Q7Payload(actions: [
-          _text(draft['q7_action']),
-          _text(draft['q7_reason']),
-          if (draft['q7_coaching_requested'] == true)
-            _text(draft['q7_coaching_note']),
-        ].where((value) => value.isNotEmpty)),
+        q7: Q7Payload(
+          actions: [
+            _text(draft['q7_action']),
+            _text(draft['q7_reason']),
+            if (draft['q7_coaching_requested'] == true)
+              _text(draft['q7_coaching_note']),
+          ].where((value) => value.isNotEmpty),
+        ),
       ),
     );
   }
@@ -137,11 +143,11 @@ const _kingdomContexts = <String, KingdomContext>{
 };
 
 CommunionType _communionType(Object? selection) => switch (selection) {
-      'daily' => CommunionType.whisper,
-      'word' => CommunionType.scriptureInsight,
-      'both' => CommunionType.asked,
-      _ => CommunionType.noneWithThanks,
-    };
+  'daily' => CommunionType.whisper,
+  'word' => CommunionType.scriptureInsight,
+  'both' => CommunionType.asked,
+  _ => CommunionType.noneWithThanks,
+};
 
 List<String> _strings(Object? value) =>
     (value as List? ?? const []).map((item) => item.toString()).toList();

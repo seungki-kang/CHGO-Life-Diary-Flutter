@@ -411,13 +411,17 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
       _recordCard('실행하는 이유', reasonController.text.trim()),
       if (coachingRequested) const Chip(label: Text('코칭 희망 · 선택 완료')),
       const SizedBox(height: 18),
-      OutlinedButton.icon(
-        onPressed: () {
-          currentLifeDiaryDraft.q7FinalCompleted = false;
-          changeStage(2);
-        },
-        icon: const Icon(Icons.edit_outlined),
-        label: const Text('최종 기록 다시 확인하기'),
+      SizedBox(
+        height: 58,
+        child: FilledButton.icon(
+          onPressed: () =>
+              Navigator.of(context).popUntil((route) => route.isFirst),
+          icon: const Icon(Icons.refresh),
+          label: const Text(
+            '처음으로 돌아가 새 생명일기 쓰기',
+            style: TextStyle(fontSize: 17),
+          ),
+        ),
       ),
     ],
   );

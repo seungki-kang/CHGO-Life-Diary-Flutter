@@ -515,27 +515,6 @@ class _LifeDiaryDatePageState extends State<LifeDiaryDatePage> {
                 height: 56,
                 child: FilledButton(
                   onPressed: () async {
-                    final existing = _progress.existingEntry;
-                    if (existing != null) {
-                      await showDialog<void>(
-                        context: context,
-                        builder: (dialogContext) => AlertDialog(
-                          title: const Text('이미 기록한 날짜입니다.'),
-                          content: Text(
-                            existing.status == LifeDiaryEntryStatus.deleted
-                                ? '삭제된 기록이 남아 있습니다. 지난 생명일기의 삭제됨 필터에서 복구해 주세요.'
-                                : '같은 날짜의 생명일기는 중복 생성하지 않습니다. 지난 생명일기에서 기존 기록을 확인하거나 수정해 주세요.',
-                          ),
-                          actions: [
-                            FilledButton(
-                              onPressed: () => Navigator.pop(dialogContext),
-                              child: const Text('확인'),
-                            ),
-                          ],
-                        ),
-                      );
-                      return;
-                    }
                     final restored = await restoreLifeDiaryDraft(selectedDate);
                     if (!restored) {
                       currentLifeDiaryDraft.reset(

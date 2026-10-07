@@ -7,7 +7,6 @@ import 'data/life_diary_database.dart';
 import 'data/life_diary_draft_store.dart';
 import 'data/life_diary_entry_factory.dart';
 import 'data/sqlite_life_diary_repository.dart';
-import 'domain/life_diary_models.dart';
 import 'presentation/life_diary_history_page.dart';
 import 'presentation/life_diary_drafts_page.dart';
 

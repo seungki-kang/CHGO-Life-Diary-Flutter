@@ -13,7 +13,7 @@ void main() {
     expect(progress.label, '시즌 2 · 1/50회');
   });
 
-  test('reuses the original position for the same date', () {
+  test('allocates the next session for another entry on the same date', () {
     final original = _entry(
       season: 3,
       session: 12,
@@ -24,8 +24,7 @@ void main() {
     ], DateTime(2026, 10, 6, 23, 59));
 
     expect(progress.seasonNumber, 3);
-    expect(progress.sessionNumber, 12);
-    expect(progress.existingEntry, same(original));
+    expect(progress.sessionNumber, 13);
   });
 }
 

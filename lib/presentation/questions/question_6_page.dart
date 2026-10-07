@@ -12,7 +12,6 @@ class LifeDiaryQuestion6Page extends StatefulWidget {
 class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
   final TextEditingController personController = TextEditingController();
   final TextEditingController whatController = TextEditingController();
-  final TextEditingController whyController = TextEditingController();
 
   final List<Map<String, String>> gratitudes = [];
   int stage = 0;
@@ -28,8 +27,7 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
       draft.q6Gratitudes.map((item) => Map<String, String>.from(item)),
     );
     personController.text = draft.q6Person;
-    whatController.text = draft.q6What;
-    whyController.text = draft.q6Why;
+    whatController.text = _combinedGratitude(draft.q6What, draft.q6Why);
     situationType = draft.q6SituationType;
     editingIndex = draft.q6EditingIndex;
   }
@@ -42,7 +40,9 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
       ..addAll(gratitudes.map((item) => Map<String, String>.from(item)));
     draft.q6Person = personController.text;
     draft.q6What = whatController.text;
-    draft.q6Why = whyController.text;
+    // Keep the canonical `why` field for backward compatibility. New UI
+    // records the overlapping what/why response in the `what` field.
+    draft.q6Why = '';
     draft.q6SituationType = situationType;
     draft.q6EditingIndex = editingIndex;
     persistCurrentLifeDiaryDraft();
@@ -53,8 +53,17 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
 
   bool get entryComplete =>
       personController.text.trim().isNotEmpty &&
-      whatController.text.trim().isNotEmpty &&
-      whyController.text.trim().isNotEmpty;
+      whatController.text.trim().isNotEmpty;
+
+  String _combinedGratitude(String what, String why) {
+    final normalizedWhat = what.trim();
+    final normalizedWhy = why.trim();
+    if (normalizedWhat.isEmpty) return normalizedWhy;
+    if (normalizedWhy.isEmpty || normalizedWhy == normalizedWhat) {
+      return normalizedWhat;
+    }
+    return '$normalizedWhat\n$normalizedWhy';
+  }
 
   void startRecording() {
     setState(() => stage = 1);
@@ -66,7 +75,7 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
     final item = <String, String>{
       'person': personController.text.trim(),
       'what': whatController.text.trim(),
-      'why': whyController.text.trim(),
+      'why': '',
       'type': situationType ?? '',
     };
     final index = editingIndex;
@@ -78,7 +87,6 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
 
     personController.clear();
     whatController.clear();
-    whyController.clear();
     setState(() {
       situationType = null;
       editingIndex = null;
@@ -90,7 +98,6 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
   void addAnotherGratitude() {
     personController.clear();
     whatController.clear();
-    whyController.clear();
     setState(() {
       editingIndex = null;
       situationType = null;
@@ -104,8 +111,10 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
     setState(() {
       editingIndex = index;
       personController.text = item['person'] ?? '';
-      whatController.text = item['what'] ?? '';
-      whyController.text = item['why'] ?? '';
+      whatController.text = _combinedGratitude(
+        item['what'] ?? '',
+        item['why'] ?? '',
+      );
       final savedType = item['type'];
       situationType = savedType == null || savedType.isEmpty ? null : savedType;
       stage = 1;
@@ -130,7 +139,6 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
     saveQ6Draft();
     personController.dispose();
     whatController.dispose();
-    whyController.dispose();
     super.dispose();
   }
 
@@ -256,7 +264,7 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
         ),
         const SizedBox(height: 8),
         const Text(
-          '구체적인 감사는 “누구에게, 무엇을, 왜 감사하는가”를 기록하는 것입니다.',
+          '구체적인 감사는 “누구에게, 무엇을 또는 왜 감사하는가”를 기록하는 것입니다.',
           style: TextStyle(fontSize: 16, height: 1.5),
         ),
         const SizedBox(height: 28),
@@ -314,23 +322,8 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
           },
           decoration: const InputDecoration(
             border: OutlineInputBorder(),
-            labelText: '무엇을 감사합니까?',
-            hintText: '감사하는 사건이나 내용을 구체적으로 기록해 주세요.',
-          ),
-        ),
-        const SizedBox(height: 16),
-        TextField(
-          controller: whyController,
-          minLines: 3,
-          maxLines: 5,
-          onChanged: (_) {
-            setState(() {});
-            saveQ6Draft();
-          },
-          decoration: const InputDecoration(
-            border: OutlineInputBorder(),
-            labelText: '왜 감사합니까?',
-            hintText: '감사하는 이유를 구체적으로 기록해 주세요.',
+            labelText: '무엇을 또는 왜 감사합니까?',
+            hintText: '감사하는 내용이나 이유를 편하게 기록해 주세요.',
           ),
         ),
         const SizedBox(height: 18),
@@ -406,9 +399,10 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
             const SizedBox(height: 8),
             Text('누구에게\n${item['person'] ?? ''}'),
             const SizedBox(height: 8),
-            Text('무엇을\n${item['what'] ?? ''}'),
-            const SizedBox(height: 8),
-            Text('왜\n${item['why'] ?? ''}'),
+            Text(
+              '무엇을 또는 왜\n'
+              '${_combinedGratitude(item['what'] ?? '', item['why'] ?? '')}',
+            ),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
