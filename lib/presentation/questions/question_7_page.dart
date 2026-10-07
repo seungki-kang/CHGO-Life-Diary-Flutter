@@ -416,6 +416,7 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
         height: 58,
         child: FilledButton.icon(
           onPressed: () {
+            _forceFreshDiaryDate = widget.diaryDate;
             currentLifeDiaryDraft.reset(widget.diaryDate);
             Navigator.of(context).popUntil((route) => route.isFirst);
           },

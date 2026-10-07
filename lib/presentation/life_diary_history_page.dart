@@ -26,6 +26,8 @@ class _LifeDiaryHistoryPageState extends State<LifeDiaryHistoryPage> {
   String _query = '';
   LifeDiaryEntryStatus? _status;
   bool _newestFirst = true;
+  bool _selectionMode = false;
+  final Set<String> _selectedEntryIds = <String>{};
 
   @override
   void initState() {
@@ -75,10 +77,80 @@ class _LifeDiaryHistoryPageState extends State<LifeDiaryHistoryPage> {
     if (mounted) await _refresh();
   }
 
+  void _toggleSelection(LifeDiaryEntry entry) {
+    if (entry.status == LifeDiaryEntryStatus.deleted) return;
+    setState(() {
+      if (!_selectedEntryIds.add(entry.entryId)) {
+        _selectedEntryIds.remove(entry.entryId);
+      }
+    });
+  }
+
+  void _closeSelectionMode() {
+    setState(() {
+      _selectionMode = false;
+      _selectedEntryIds.clear();
+    });
+  }
+
+  Future<void> _deleteSelected() async {
+    if (_selectedEntryIds.isEmpty) return;
+    final count = _selectedEntryIds.length;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('선택한 생명일기 $count개를 삭제할까요?'),
+        content: const Text('삭제한 기록은 “삭제됨”에서 확인하고 다시 복구할 수 있습니다.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('취소'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('삭제'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    final ids = _selectedEntryIds.toList(growable: false);
+    for (final entryId in ids) {
+      await widget.repository.tombstone(entryId);
+      widget.logger?.audit('life_diary.entry_deleted', {
+        'entry_id': entryId,
+        'operation': 'DELETE',
+        'source': 'LOCAL_SQLITE',
+      });
+    }
+    if (!mounted) return;
+    _closeSelectionMode();
+    await _refresh();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('나의 생명일기'), centerTitle: true),
+      appBar: AppBar(
+        title: Text(
+          _selectionMode ? '${_selectedEntryIds.length}개 선택' : '나의 생명일기',
+        ),
+        centerTitle: true,
+        actions: [
+          if (_selectionMode) ...[
+            IconButton(
+              tooltip: '선택 취소',
+              onPressed: _closeSelectionMode,
+              icon: const Icon(Icons.close),
+            ),
+          ] else if (_status != LifeDiaryEntryStatus.deleted)
+            TextButton.icon(
+              onPressed: () => setState(() => _selectionMode = true),
+              icon: const Icon(Icons.delete_outline),
+              label: const Text('삭제'),
+            ),
+        ],
+      ),
       body: Column(
         children: [
           Padding(
@@ -162,9 +234,18 @@ class _LifeDiaryHistoryPageState extends State<LifeDiaryHistoryPage> {
                             horizontal: 18,
                             vertical: 8,
                           ),
-                          leading: CircleAvatar(
-                            child: Text('${entry.sessionNumber}'),
-                          ),
+                          leading:
+                              _selectionMode &&
+                                  entry.status != LifeDiaryEntryStatus.deleted
+                              ? Checkbox(
+                                  value: _selectedEntryIds.contains(
+                                    entry.entryId,
+                                  ),
+                                  onChanged: (_) => _toggleSelection(entry),
+                                )
+                              : CircleAvatar(
+                                  child: Text('${entry.sessionNumber}'),
+                                ),
                           title: Text(
                             _formatDate(entry.entryDate),
                             style: const TextStyle(fontWeight: FontWeight.bold),
@@ -173,13 +254,19 @@ class _LifeDiaryHistoryPageState extends State<LifeDiaryHistoryPage> {
                             '시즌 ${entry.seasonNumber} · ${entry.sessionNumber}/50회 · '
                             '${_statusLabel(entry.status)}',
                           ),
-                          trailing: entry.status == LifeDiaryEntryStatus.deleted
+                          trailing: _selectionMode
+                              ? null
+                              : entry.status == LifeDiaryEntryStatus.deleted
                               ? TextButton(
                                   onPressed: () => _restore(entry),
                                   child: const Text('복구'),
                                 )
                               : const Icon(Icons.chevron_right),
-                          onTap: entry.status == LifeDiaryEntryStatus.deleted
+                          onTap:
+                              _selectionMode &&
+                                  entry.status != LifeDiaryEntryStatus.deleted
+                              ? () => _toggleSelection(entry)
+                              : entry.status == LifeDiaryEntryStatus.deleted
                               ? null
                               : () async {
                                   final changed = await Navigator.push<bool>(
@@ -203,6 +290,28 @@ class _LifeDiaryHistoryPageState extends State<LifeDiaryHistoryPage> {
               },
             ),
           ),
+          if (_selectionMode)
+            SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: FilledButton.icon(
+                    onPressed: _selectedEntryIds.isEmpty
+                        ? null
+                        : _deleteSelected,
+                    icon: const Icon(Icons.delete_outline),
+                    label: Text(
+                      _selectedEntryIds.isEmpty
+                          ? '삭제할 기록을 선택하세요'
+                          : '선택한 ${_selectedEntryIds.length}개 삭제',
+                    ),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );

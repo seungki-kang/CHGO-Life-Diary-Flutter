@@ -93,13 +93,55 @@ void main() {
     await tester.pumpAndSettle();
     expect(repository.restoredEntryId, 'entry-1');
   });
+
+  testWidgets('selects and deletes multiple entries from the history list', (
+    tester,
+  ) async {
+    final repository = _FakeRepository([
+      _entry(),
+      _entry(
+        entryId: 'entry-2',
+        sessionNumber: 2,
+        entryDate: DateTime(2026, 10, 7),
+      ),
+    ]);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: LifeDiaryHistoryPage(
+          repository: repository,
+          ownerUserId: 'owner',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(TextButton, '삭제'));
+    await tester.pumpAndSettle();
+    expect(find.text('삭제할 기록을 선택하세요'), findsOneWidget);
+
+    await tester.tap(find.text('2026년 10월 6일'));
+    await tester.tap(find.text('2026년 10월 7일'));
+    await tester.pumpAndSettle();
+    expect(find.text('선택한 2개 삭제'), findsOneWidget);
+
+    await tester.tap(find.text('선택한 2개 삭제'));
+    await tester.pumpAndSettle();
+    expect(find.text('선택한 생명일기 2개를 삭제할까요?'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, '삭제'));
+    await tester.pumpAndSettle();
+
+    expect(repository.deletedEntryIds, containsAll(['entry-1', 'entry-2']));
+    expect(find.text('아직 완성된 생명일기가 없습니다.'), findsOneWidget);
+  });
 }
 
 class _FakeRepository implements LifeDiaryRepository {
   _FakeRepository(this.entries);
 
   final List<LifeDiaryEntry> entries;
-  String? deletedEntryId;
+  final List<String> deletedEntryIds = <String>[];
+  String? get deletedEntryId =>
+      deletedEntryIds.isEmpty ? null : deletedEntryIds.last;
   String? restoredEntryId;
 
   @override
@@ -113,7 +155,7 @@ class _FakeRepository implements LifeDiaryRepository {
 
   @override
   Future<void> tombstone(String entryId) async {
-    deletedEntryId = entryId;
+    deletedEntryIds.add(entryId);
     entries.removeWhere((entry) => entry.entryId == entryId);
   }
 
@@ -132,13 +174,16 @@ class _FakeRepository implements LifeDiaryRepository {
 }
 
 LifeDiaryEntry _entry({
+  String entryId = 'entry-1',
+  int sessionNumber = 1,
+  DateTime? entryDate,
   LifeDiaryEntryStatus status = LifeDiaryEntryStatus.completed,
 }) => LifeDiaryEntry(
-  entryId: 'entry-1',
+  entryId: entryId,
   ownerUserId: 'owner',
   seasonNumber: 1,
-  sessionNumber: 1,
-  entryDate: DateTime(2026, 10, 6),
+  sessionNumber: sessionNumber,
+  entryDate: entryDate ?? DateTime(2026, 10, 6),
   status: status,
   canonicalVersion: '1.0.0',
   questions: LifeDiaryQuestions(

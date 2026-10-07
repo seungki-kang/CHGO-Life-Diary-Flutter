@@ -7,6 +7,14 @@ final LifeDiaryEntryFactory lifeDiaryEntryFactory = LifeDiaryEntryFactory();
 final AppLogger lifeDiaryLogger = AppLogger();
 Future<void> _draftWrite = Future.value();
 final LifeDiaryDraftLifecycle _draftLifecycle = LifeDiaryDraftLifecycle();
+DateTime? _forceFreshDiaryDate;
+
+bool _sameDiaryDate(DateTime? left, DateTime right) {
+  return left != null &&
+      left.year == right.year &&
+      left.month == right.month &&
+      left.day == right.day;
+}
 
 void persistCurrentLifeDiaryDraft() {
   if (!_draftLifecycle.shouldPersist) return;
@@ -517,15 +525,32 @@ class _LifeDiaryDatePageState extends State<LifeDiaryDatePage> {
                 height: 56,
                 child: FilledButton(
                   onPressed: () async {
-                    _draftLifecycle.beginDraft();
-                    final restored = await restoreLifeDiaryDraft(selectedDate);
-                    if (!restored) {
+                    await _draftWrite;
+                    final forceFresh = _sameDiaryDate(
+                      _forceFreshDiaryDate,
+                      selectedDate,
+                    );
+                    final restored = forceFresh
+                        ? false
+                        : await restoreLifeDiaryDraft(selectedDate);
+                    final restoredMatchesNextSession =
+                        restored &&
+                        _draftLifecycle.matchesNextSession(
+                          draftSeason: currentLifeDiaryDraft.seasonNumber,
+                          draftSession: currentLifeDiaryDraft.sessionNumber,
+                          nextSeason: _progress.seasonNumber,
+                          nextSession: _progress.sessionNumber,
+                        );
+                    if (forceFresh || !restoredMatchesNextSession) {
+                      await lifeDiaryDraftStore.delete(selectedDate);
                       currentLifeDiaryDraft.reset(
                         selectedDate,
                         season: _progress.seasonNumber,
                         session: _progress.sessionNumber,
                       );
                     }
+                    _forceFreshDiaryDate = null;
+                    _draftLifecycle.beginDraft();
                     if (!context.mounted) return;
                     Navigator.push(
                       context,

@@ -19,4 +19,27 @@ void main() {
 
     expect(lifecycle.shouldPersist, isTrue);
   });
+
+  test('only a draft for the next session can be restored', () {
+    final lifecycle = LifeDiaryDraftLifecycle();
+
+    expect(
+      lifecycle.matchesNextSession(
+        draftSeason: 1,
+        draftSession: 1,
+        nextSeason: 1,
+        nextSession: 2,
+      ),
+      isFalse,
+    );
+    expect(
+      lifecycle.matchesNextSession(
+        draftSeason: 1,
+        draftSession: 2,
+        nextSeason: 1,
+        nextSession: 2,
+      ),
+      isTrue,
+    );
+  });
 }
