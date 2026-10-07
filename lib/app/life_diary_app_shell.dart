@@ -13,7 +13,7 @@ void persistCurrentLifeDiaryDraft() {
   final payload = currentLifeDiaryDraft.toJson();
   _draftWrite = _draftWrite
       .then((_) async {
-        await lifeDiaryDraftStore.save(date, payload);
+        await _saveDraftWithRetry(date, payload);
         lifeDiaryLogger.debug('life_diary.draft_saved', {
           'operation': 'UPSERT',
           'source': 'LOCAL_SQLITE',
@@ -26,6 +26,28 @@ void persistCurrentLifeDiaryDraft() {
           'error_code': error.runtimeType.toString(),
         });
       });
+}
+
+Future<void> _saveDraftWithRetry(
+  DateTime date,
+  Map<String, Object?> payload,
+) async {
+  const maximumAttempts = 3;
+  for (var attempt = 1; attempt <= maximumAttempts; attempt++) {
+    try {
+      await lifeDiaryDraftStore.save(date, payload);
+      return;
+    } catch (error) {
+      if (attempt == maximumAttempts) rethrow;
+      lifeDiaryLogger.warn('life_diary.draft_save_retry', {
+        'operation': 'UPSERT',
+        'source': 'LOCAL_SQLITE',
+        'retry_count': attempt,
+        'error_code': error.runtimeType.toString(),
+      });
+      await Future<void>.delayed(Duration(milliseconds: 50 * attempt));
+    }
+  }
 }
 
 Future<bool> restoreLifeDiaryDraft(DateTime date) async {
@@ -44,6 +66,68 @@ Future<bool> restoreLifeDiaryDraft(DateTime date) async {
     'source': 'LOCAL_SQLITE',
   });
   return true;
+}
+
+Widget buildLifeDiaryQuestionPage(DateTime diaryDate, int number) {
+  if (number == 1) return LifeDiaryReadyPage(diaryDate: diaryDate);
+  if (number == 2) {
+    return LifeDiaryQuestion2Page(
+      diaryDate: diaryDate,
+      selectedOldSelves: currentLifeDiaryDraft.q1OldSelves.toList(),
+      noOldSelfToday: currentLifeDiaryDraft.q1NoOldSelf,
+    );
+  }
+  if (number == 3) return LifeDiaryQuestion3Page(diaryDate: diaryDate);
+  if (number == 4) return LifeDiaryQuestion4Page(diaryDate: diaryDate);
+  if (number == 5) return LifeDiaryQuestion5Page(diaryDate: diaryDate);
+  if (number == 6) return LifeDiaryQuestion6Page(diaryDate: diaryDate);
+  return LifeDiaryQuestion7Page(diaryDate: diaryDate);
+}
+
+Future<void> resumeLifeDiaryDraft(
+  BuildContext context,
+  LifeDiaryDraftRecord record,
+  int questionNumber,
+) async {
+  currentLifeDiaryDraft.loadJson(record.date, record.payload);
+  lifeDiaryLogger.info('life_diary.draft_resumed', {
+    'question_id': 'JL-LD-Q${questionNumber.toString().padLeft(2, '0')}',
+    'operation': 'LOAD',
+    'source': 'LOCAL_SQLITE',
+  });
+  await Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => buildLifeDiaryQuestionPage(record.date, questionNumber),
+    ),
+  );
+}
+
+Future<void> confirmDraftExit(
+  BuildContext context,
+  VoidCallback saveCurrent,
+) async {
+  final leave = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('작성 내용을 저장하고 나갈까요?'),
+      content: const Text('저장한 내용은 “작성 중인 생명일기”에서 이어갈 수 있습니다.'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext, false),
+          child: const Text('계속 작성'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(dialogContext, true),
+          child: const Text('저장 후 나가기'),
+        ),
+      ],
+    ),
+  );
+  if (leave != true) return;
+  saveCurrent();
+  await _draftWrite;
+  if (context.mounted) Navigator.pop(context);
 }
 
 Future<void> showLifeDiaryQuestionNavigator(
@@ -97,27 +181,10 @@ Future<void> showLifeDiaryQuestionNavigator(
                     : () {
                         saveCurrent?.call();
                         Navigator.pop(sheetContext);
-                        late final Widget page;
-                        if (number == 1) {
-                          page = LifeDiaryReadyPage(diaryDate: diaryDate);
-                        } else if (number == 2) {
-                          page = LifeDiaryQuestion2Page(
-                            diaryDate: diaryDate,
-                            selectedOldSelves: currentLifeDiaryDraft.q1OldSelves
-                                .toList(),
-                            noOldSelfToday: currentLifeDiaryDraft.q1NoOldSelf,
-                          );
-                        } else if (number == 3) {
-                          page = LifeDiaryQuestion3Page(diaryDate: diaryDate);
-                        } else if (number == 4) {
-                          page = LifeDiaryQuestion4Page(diaryDate: diaryDate);
-                        } else if (number == 5) {
-                          page = LifeDiaryQuestion5Page(diaryDate: diaryDate);
-                        } else if (number == 6) {
-                          page = LifeDiaryQuestion6Page(diaryDate: diaryDate);
-                        } else {
-                          page = LifeDiaryQuestion7Page(diaryDate: diaryDate);
-                        }
+                        final page = buildLifeDiaryQuestionPage(
+                          diaryDate,
+                          number,
+                        );
                         Navigator.push(
                           context,
                           MaterialPageRoute(builder: (_) => page),
@@ -249,6 +316,32 @@ class LifeDiaryStartPage extends StatelessWidget {
                     icon: const Icon(Icons.history),
                     label: const Text(
                       '지난 생명일기 보기',
+                      style: TextStyle(fontSize: 17),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => LifeDiaryDraftsPage(
+                            store: lifeDiaryDraftStore,
+                            onResume: resumeLifeDiaryDraft,
+                            logger: lifeDiaryLogger,
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.edit_note),
+                    label: const Text(
+                      '작성 중인 생명일기',
                       style: TextStyle(fontSize: 17),
                     ),
                   ),

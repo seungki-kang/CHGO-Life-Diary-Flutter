@@ -108,7 +108,7 @@ class _LifeDiaryQuestion5PageState extends State<LifeDiaryQuestion5Page> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => confirmDraftExit(context, saveQ5Draft),
         ),
         title: const Text('생명일기'),
         centerTitle: true,

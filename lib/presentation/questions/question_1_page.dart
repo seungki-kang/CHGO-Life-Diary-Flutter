@@ -89,7 +89,7 @@ class _LifeDiaryReadyPageState extends State<LifeDiaryReadyPage> {
     }
   }
 
-  void previousStep() {
+  Future<void> previousStep() async {
     if (step == 4 && noOldSelfToday) {
       setState(() {
         step = 1;
@@ -102,7 +102,7 @@ class _LifeDiaryReadyPageState extends State<LifeDiaryReadyPage> {
         step--;
       });
     } else {
-      Navigator.pop(context);
+      await confirmDraftExit(context, saveQ1Draft);
     }
   }
 

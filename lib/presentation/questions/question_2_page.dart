@@ -283,7 +283,7 @@ class _LifeDiaryQuestion2PageState extends State<LifeDiaryQuestion2Page> {
         appBar: AppBar(
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => confirmDraftExit(context, saveQ2Draft),
           ),
           title: const Text('생명일기'),
           centerTitle: true,
@@ -379,7 +379,7 @@ class _LifeDiaryQuestion2PageState extends State<LifeDiaryQuestion2Page> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => confirmDraftExit(context, saveQ2Draft),
         ),
         title: const Text('생명일기'),
         centerTitle: true,

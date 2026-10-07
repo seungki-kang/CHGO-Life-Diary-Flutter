@@ -49,4 +49,20 @@ void main() {
   test('returns null when the selected date has no draft', () async {
     expect(await store.load(DateTime(2026, 10, 7)), isNull);
   });
+
+  test('lists drafts by latest update and deletes one', () async {
+    final first = DateTime(2026, 10, 6);
+    final second = DateTime(2026, 10, 7);
+    await store.save(first, {'q1_detail': 'first'});
+    await store.save(second, {'q3_stage': 2});
+
+    final drafts = await store.listAll();
+    expect(drafts, hasLength(2));
+    expect(drafts.first.date, second);
+    expect(drafts.first.payload['q3_stage'], 2);
+
+    await store.delete(second);
+    expect(await store.listAll(), hasLength(1));
+    expect(await store.load(second), isNull);
+  });
 }

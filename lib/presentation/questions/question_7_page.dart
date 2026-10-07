@@ -14,6 +14,7 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
   final coachingNoteController = TextEditingController();
   int stage = 0;
   bool coachingRequested = false;
+  bool _draftFinalized = false;
 
   @override
   void initState() {
@@ -27,6 +28,7 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
   }
 
   void saveQ7Draft() {
+    if (_draftFinalized) return;
     final draft = currentLifeDiaryDraft;
     draft.q7Stage = stage;
     draft.q7Action = actionController.text;
@@ -91,6 +93,23 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
       if (!mounted) return;
       setState(() => stage = 3);
       saveQ7Draft();
+      try {
+        await _draftWrite;
+        await lifeDiaryDraftStore.delete(widget.diaryDate);
+        _draftFinalized = true;
+        lifeDiaryLogger.info('life_diary.completed_draft_removed', {
+          'entry_id': entry.entryId,
+          'operation': 'DELETE',
+          'source': 'LOCAL_SQLITE',
+        });
+      } catch (error) {
+        lifeDiaryLogger.warn('life_diary.completed_draft_cleanup_failed', {
+          'entry_id': entry.entryId,
+          'operation': 'DELETE',
+          'source': 'LOCAL_SQLITE',
+          'error_code': error.runtimeType.toString(),
+        });
+      }
     } catch (error) {
       currentLifeDiaryDraft.q7FinalCompleted = false;
       lifeDiaryLogger.error('life_diary.completed_entry_save_failed', {
@@ -106,7 +125,7 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
 
   @override
   void dispose() {
-    saveQ7Draft();
+    if (!_draftFinalized) saveQ7Draft();
     actionController.dispose();
     reasonController.dispose();
     coachingNoteController.dispose();
@@ -119,7 +138,9 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
+          onPressed: _draftFinalized
+              ? () => Navigator.pop(context)
+              : () => confirmDraftExit(context, saveQ7Draft),
         ),
         title: const Text('생명일기'),
         centerTitle: true,
