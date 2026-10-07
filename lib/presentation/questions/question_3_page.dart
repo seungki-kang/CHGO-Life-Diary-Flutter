@@ -105,6 +105,21 @@ class _LifeDiaryQuestion3PageState extends State<LifeDiaryQuestion3Page> {
     return '${date.year}년 ${date.month}월 ${date.day}일';
   }
 
+  Future<void> handleBack() async {
+    if (stage == 0) {
+      await confirmDraftExit(context, saveQ3Draft);
+      return;
+    }
+    setState(() {
+      stage = previousQuestion3Stage(
+        stage: stage,
+        noKingdomEnjoyment: noKingdomEnjoymentToday,
+      );
+      identityGuidance = null;
+    });
+    saveQ3Draft();
+  }
+
   String declarationFruitName(String fruit) {
     return fruit == '평안(화평)' ? '평안' : fruit;
   }
@@ -330,7 +345,7 @@ class _LifeDiaryQuestion3PageState extends State<LifeDiaryQuestion3Page> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => confirmDraftExit(context, saveQ3Draft),
+          onPressed: handleBack,
         ),
         title: const Text('생명일기'),
         centerTitle: true,

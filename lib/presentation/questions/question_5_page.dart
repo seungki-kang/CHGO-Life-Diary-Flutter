@@ -46,6 +46,18 @@ class _LifeDiaryQuestion5PageState extends State<LifeDiaryQuestion5Page> {
   String formatDate(DateTime date) =>
       '${date.year}년 ${date.month}월 ${date.day}일';
 
+  Future<void> handleBack() async {
+    if (stage == 0) {
+      await confirmDraftExit(context, saveQ5Draft);
+      return;
+    }
+    setState(() {
+      stage = previousQuestion5Stage(stage: stage, selection: selection);
+      guidance = null;
+    });
+    saveQ5Draft();
+  }
+
   String normalized(String text) => text
       .replaceAll(RegExp(r'\s+'), '')
       .replaceAll(RegExp(r'[,，]'), '')
@@ -111,7 +123,7 @@ class _LifeDiaryQuestion5PageState extends State<LifeDiaryQuestion5Page> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => confirmDraftExit(context, saveQ5Draft),
+          onPressed: handleBack,
         ),
         title: const Text('생명일기'),
         centerTitle: true,

@@ -144,6 +144,18 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
     saveQ6Draft();
   }
 
+  Future<void> handleBack() async {
+    if (stage == 0) {
+      await confirmDraftExit(context, saveQ6Draft);
+      return;
+    }
+    setState(() {
+      stage = previousQuestion6Stage(stage);
+      editingIndex = null;
+    });
+    saveQ6Draft();
+  }
+
   @override
   void dispose() {
     saveQ6Draft();
@@ -159,7 +171,7 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => confirmDraftExit(context, saveQ6Draft),
+          onPressed: handleBack,
         ),
         title: const Text('생명일기'),
         centerTitle: true,

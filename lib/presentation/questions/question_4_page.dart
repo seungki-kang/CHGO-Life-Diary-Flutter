@@ -98,6 +98,22 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
   String formatDate(DateTime date) =>
       '${date.year}년 ${date.month}월 ${date.day}일';
 
+  Future<void> handleBack() async {
+    if (stage == 0) {
+      await confirmDraftExit(context, saveQ4Draft);
+      return;
+    }
+    setState(() {
+      stage = previousQuestion4Stage(
+        stage: stage,
+        noRecord: noRecordToday,
+        hasAdditionalConfessions: additionalQueue.isNotEmpty,
+      );
+      guidance = null;
+    });
+    saveQ4Draft();
+  }
+
   String _combinedText(String first, String second) {
     final normalizedFirst = first.trim();
     final normalizedSecond = second.trim();
@@ -306,7 +322,7 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => confirmDraftExit(context, saveQ4Draft),
+          onPressed: handleBack,
         ),
         title: const Text('생명일기'),
         centerTitle: true,

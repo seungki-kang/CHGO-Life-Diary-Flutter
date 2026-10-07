@@ -10,6 +10,7 @@ void main() {
     'q1_no_old_self': false,
     'q1_awareness': '알고 있었다',
     'q1_step': 4,
+    'q1_completed': true,
     'q2_completed_old_selves': ['두려움'],
     'q2_partial_text': '',
     'q3_stage': 4,
@@ -65,6 +66,15 @@ void main() {
     expect(
       validator.validate(draft).map((issue) => issue.questionNumber),
       isNot(contains(2)),
+    );
+  });
+
+  test('opening Q1 final screen is not the same as completing Q1', () {
+    final draft = completeDraft()..['q1_completed'] = false;
+
+    expect(
+      validator.validate(draft).map((issue) => issue.questionNumber),
+      contains(1),
     );
   });
 }

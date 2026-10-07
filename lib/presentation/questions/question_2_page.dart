@@ -68,6 +68,38 @@ class _LifeDiaryQuestion2PageState extends State<LifeDiaryQuestion2Page> {
     persistCurrentLifeDiaryDraft();
   }
 
+  Future<void> handleBack() async {
+    if (q2AllComplete) {
+      final target = confessionQueue.length - 1;
+      final oldSelf = confessionQueue[target];
+      setState(() {
+        currentLifeDiaryDraft.q2CompletedOldSelves.remove(oldSelf);
+        completedOldSelves.remove(oldSelf);
+        currentIndex = target;
+        confessionController.clear();
+        guidanceMessage = null;
+      });
+      saveQ2Draft();
+      return;
+    }
+
+    if (currentIndex > 0) {
+      final target = currentIndex - 1;
+      final oldSelf = confessionQueue[target];
+      setState(() {
+        currentLifeDiaryDraft.q2CompletedOldSelves.remove(oldSelf);
+        completedOldSelves.remove(oldSelf);
+        currentIndex = target;
+        confessionController.clear();
+        guidanceMessage = null;
+      });
+      saveQ2Draft();
+      return;
+    }
+
+    await confirmDraftExit(context, saveQ2Draft);
+  }
+
   @override
   void dispose() {
     saveQ2Draft();
@@ -284,7 +316,7 @@ class _LifeDiaryQuestion2PageState extends State<LifeDiaryQuestion2Page> {
         appBar: AppBar(
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
-            onPressed: () => confirmDraftExit(context, saveQ2Draft),
+            onPressed: handleBack,
           ),
           title: const Text('생명일기'),
           centerTitle: true,
@@ -380,7 +412,7 @@ class _LifeDiaryQuestion2PageState extends State<LifeDiaryQuestion2Page> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => confirmDraftExit(context, saveQ2Draft),
+          onPressed: handleBack,
         ),
         title: const Text('생명일기'),
         centerTitle: true,

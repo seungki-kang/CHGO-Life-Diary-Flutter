@@ -20,61 +20,44 @@ String normalizeDiarySentence(String text) =>
 String characterDifferenceGuidance(String typedText, String expectedText) {
   final typed = normalizeDiarySentence(typedText);
   final expected = normalizeDiarySentence(expectedText);
-  final rows = typed.length + 1;
-  final columns = expected.length + 1;
-  final matrix = List.generate(rows, (_) => List<int>.filled(columns, 0));
+  if (typed == expected) return '문장이 일치합니다.';
 
-  for (var i = 0; i < rows; i++) matrix[i][0] = i;
-  for (var j = 0; j < columns; j++) matrix[0][j] = j;
-  for (var i = 1; i < rows; i++) {
-    for (var j = 1; j < columns; j++) {
-      final cost = typed.codeUnitAt(i - 1) == expected.codeUnitAt(j - 1)
-          ? 0
-          : 1;
-      final deletion = matrix[i - 1][j] + 1;
-      final insertion = matrix[i][j - 1] + 1;
-      final replacement = matrix[i - 1][j - 1] + cost;
-      matrix[i][j] = [
-        deletion,
-        insertion,
-        replacement,
-      ].reduce((a, b) => a < b ? a : b);
-    }
+  var prefix = 0;
+  while (prefix < typed.length &&
+      prefix < expected.length &&
+      typed[prefix] == expected[prefix]) {
+    prefix++;
   }
 
-  var i = typed.length;
-  var j = expected.length;
-  final differences = <String>[];
-  while (i > 0 || j > 0) {
-    if (i > 0 &&
-        j > 0 &&
-        typed.codeUnitAt(i - 1) == expected.codeUnitAt(j - 1)) {
-      i--;
-      j--;
-      continue;
-    }
-    if (i > 0 && j > 0 && matrix[i][j] == matrix[i - 1][j - 1] + 1) {
-      differences.add(
-        '${j}번째 글자 “${typed[i - 1]}”를 “${expected[j - 1]}”로 수정해 주세요.',
-      );
-      i--;
-      j--;
-    } else if (i > 0 && matrix[i][j] == matrix[i - 1][j] + 1) {
-      differences.add('${i}번째에 입력한 “${typed[i - 1]}”는 더 들어간 글자입니다. 삭제해 주세요.');
-      i--;
-    } else if (j > 0) {
-      differences.add('${j}번째에 “${expected[j - 1]}”가 빠졌습니다. 넣어 주세요.');
-      j--;
-    }
+  var suffix = 0;
+  while (suffix < typed.length - prefix &&
+      suffix < expected.length - prefix &&
+      typed[typed.length - 1 - suffix] ==
+          expected[expected.length - 1 - suffix]) {
+    suffix++;
   }
 
-  if (differences.isEmpty) return '위 문장을 다시 확인해 주세요.';
-  final ordered = differences.reversed.toList();
-  final visible = ordered.take(5).map((message) => '• $message').join('\n');
-  final remainder = ordered.length > 5
-      ? '\n• 이 밖에도 ${ordered.length - 5}곳을 더 확인해 주세요.'
-      : '';
-  return '다음 글자를 확인해 주세요.\n$visible$remainder';
+  final contextStart = prefix > 8 ? prefix - 8 : 0;
+  final typedEnd = typed.length - suffix;
+  final expectedEnd = expected.length - suffix;
+  final contextTypedEnd = (typedEnd + 8).clamp(0, typed.length).toInt();
+  final contextExpectedEnd = (expectedEnd + 8)
+      .clamp(0, expected.length)
+      .toInt();
+  final typedWrong = typed.substring(prefix, typedEnd);
+  final expectedRight = expected.substring(prefix, expectedEnd);
+  final typedExcerpt =
+      typed.substring(contextStart, prefix) +
+      '[${typedWrong.isEmpty ? '빠짐' : typedWrong}]' +
+      typed.substring(typedEnd, contextTypedEnd);
+  final expectedExcerpt =
+      expected.substring(contextStart, prefix) +
+      '[${expectedRight.isEmpty ? '삭제' : expectedRight}]' +
+      expected.substring(expectedEnd, contextExpectedEnd);
+
+  return '글자 번호 대신 [ ] 안의 부분을 비교해 주세요.\n'
+      '내가 쓴 문장: …$typedExcerpt…\n'
+      '바른 문장: …$expectedExcerpt…';
 }
 
 class LifeDiarySessionDraft {
@@ -89,6 +72,7 @@ class LifeDiarySessionDraft {
   String? q1Awareness;
   double q1AwarenessPercent = 50;
   int q1Step = 1;
+  bool q1Completed = false;
   final List<String> q2CompletedOldSelves = [];
   String q2PartialText = '';
   int q2CurrentIndex = 0;
@@ -159,6 +143,7 @@ class LifeDiarySessionDraft {
     'q1_awareness': q1Awareness,
     'q1_awareness_percent': q1AwarenessPercent,
     'q1_step': q1Step,
+    'q1_completed': q1Completed,
     'q2_completed_old_selves': q2CompletedOldSelves,
     'q2_partial_text': q2PartialText,
     'q2_current_index': q2CurrentIndex,
@@ -240,6 +225,9 @@ class LifeDiarySessionDraft {
         (json['q1_awareness_percent'] as num?)?.toDouble() ?? 50;
     q1Step = json.containsKey('q1_step') ? number('q1_step') : 1;
     q2CompletedOldSelves.addAll(strings('q2_completed_old_selves'));
+    q1Completed = json.containsKey('q1_completed')
+        ? flag('q1_completed')
+        : q2CompletedOldSelves.isNotEmpty;
     q2PartialText = text('q2_partial_text');
     q2CurrentIndex = number('q2_current_index');
     q3Stage = number('q3_stage');
@@ -316,6 +304,7 @@ class LifeDiarySessionDraft {
     q1Awareness = null;
     q1AwarenessPercent = 50;
     q1Step = 1;
+    q1Completed = false;
     q2CompletedOldSelves.clear();
     q2PartialText = '';
     q2CurrentIndex = 0;

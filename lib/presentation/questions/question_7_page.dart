@@ -50,6 +50,19 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
     saveQ7Draft();
   }
 
+  Future<void> handleBack() async {
+    if (_draftFinalized) {
+      Navigator.pop(context);
+      return;
+    }
+    if (stage == 0) {
+      await confirmDraftExit(context, saveQ7Draft);
+      return;
+    }
+    setState(() => stage = previousQuestion7Stage(stage));
+    saveQ7Draft();
+  }
+
   Future<void> completeLifeDiary() async {
     saveQ7Draft();
     final issues = const LifeDiaryCompletionValidator().validate(
@@ -197,9 +210,7 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: _draftFinalized
-              ? () => Navigator.pop(context)
-              : () => confirmDraftExit(context, saveQ7Draft),
+          onPressed: handleBack,
         ),
         title: const Text('생명일기'),
         centerTitle: true,

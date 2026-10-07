@@ -33,7 +33,8 @@ class LifeDiaryCompletionValidator {
   String? _incompleteReason(Map<String, Object?> draft, int question) {
     switch (question) {
       case 1:
-        if (_number(draft, 'q1_step') >= 4 &&
+        if (_flag(draft, 'q1_completed') &&
+            _number(draft, 'q1_step') >= 4 &&
             (_flag(draft, 'q1_no_old_self') ||
                 (_text(draft, 'q1_detail').isNotEmpty &&
                     _strings(draft, 'q1_old_selves').isNotEmpty &&

@@ -91,6 +91,7 @@ class _LifeDiaryReadyPageState extends State<LifeDiaryReadyPage> {
   }
 
   Future<void> previousStep() async {
+    currentLifeDiaryDraft.q1Completed = false;
     if (step == 4 && noOldSelfToday) {
       setState(() {
         step = 1;
@@ -518,6 +519,7 @@ class _LifeDiaryReadyPageState extends State<LifeDiaryReadyPage> {
           height: 56,
           child: FilledButton(
             onPressed: () {
+              currentLifeDiaryDraft.q1Completed = true;
               saveQ1Draft();
               if (widget.editMode) {
                 Navigator.pop(context, true);
