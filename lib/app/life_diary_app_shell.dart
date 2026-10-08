@@ -117,24 +117,8 @@ Future<void> confirmDraftExit(
   BuildContext context,
   VoidCallback saveCurrent,
 ) async {
-  final leave = await showDialog<bool>(
-    context: context,
-    builder: (dialogContext) => AlertDialog(
-      title: const Text('작성 내용을 저장하고 나갈까요?'),
-      content: const Text('저장한 내용은 “작성 중인 생명일기”에서 이어갈 수 있습니다.'),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(dialogContext, false),
-          child: const Text('계속 작성'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.pop(dialogContext, true),
-          child: const Text('저장 후 나가기'),
-        ),
-      ],
-    ),
-  );
-  if (leave != true) return;
+  // Every back action is a safe checkpoint. Do not make the user choose
+  // between leaving and preserving already written spiritual reflections.
   saveCurrent();
   await _draftWrite;
   if (context.mounted) Navigator.pop(context);
@@ -241,7 +225,7 @@ class ChgoLifeDiaryApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'CHGO Life Diary',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF6759A8)),
         useMaterial3: true,
       ),
       home: const LifeDiaryStartPage(),
@@ -268,7 +252,20 @@ class LifeDiaryStartPage extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.menu_book_rounded, size: 72),
+                ClipRect(
+                  child: SizedBox(
+                    width: 104,
+                    height: 104,
+                    child: Transform.scale(
+                      scale: 2.1,
+                      child: Image.asset(
+                        'assets/branding/jesuslife_logo_light.jpg',
+                        fit: BoxFit.cover,
+                        semanticLabel: 'JesusLife',
+                      ),
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 24),
 
                 const Text(

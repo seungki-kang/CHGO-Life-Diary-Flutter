@@ -201,9 +201,12 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
   }
 
   void beginAdditionalProcessing() {
-    if (additionalOldSelves.isEmpty || !acceptsOwnership) return;
+    if (additionalOldSelves.isEmpty) return;
     additionalQueue = additionalOldSelves.toList();
     setState(() {
+      // Retain the canonical compatibility flag without requiring a separate
+      // 100% awareness claim from the user.
+      acceptsOwnership = true;
       stage = 4;
       additionalIndex = 0;
       additionalConfessionController.clear();
@@ -643,22 +646,15 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
               } else {
                 additionalOldSelves.remove(oldSelf);
               }
+              acceptsOwnership = additionalOldSelves.isNotEmpty;
             }),
           ),
-        ),
-        const Divider(height: 28),
-        CheckboxListTile(
-          contentPadding: EdgeInsets.zero,
-          value: acceptsOwnership,
-          title: const Text('이 옛사람은 100% 내 안에 있음을 깨달았습니다.'),
-          onChanged: (value) =>
-              setState(() => acceptsOwnership = value ?? false),
         ),
         const SizedBox(height: 20),
         SizedBox(
           height: 56,
           child: FilledButton(
-            onPressed: additionalOldSelves.isNotEmpty && acceptsOwnership
+            onPressed: additionalOldSelves.isNotEmpty
                 ? beginAdditionalProcessing
                 : null,
             child: const Text('추가 2번으로 처리하기', style: TextStyle(fontSize: 18)),

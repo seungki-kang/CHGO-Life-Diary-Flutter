@@ -8,5 +8,6 @@ void main() {
     expect(find.text('CHGO Life Diary'), findsOneWidget);
     expect(find.text('생명일기'), findsOneWidget);
     expect(find.textContaining('성령의 역사입니다'), findsOneWidget);
+    expect(find.bySemanticsLabel('JesusLife'), findsOneWidget);
   });
 }

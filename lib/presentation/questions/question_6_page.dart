@@ -149,6 +149,30 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
       await confirmDraftExit(context, saveQ6Draft);
       return;
     }
+    if (stage == 1 && editingIndex == null && gratitudes.length >= 3) {
+      setState(() => stage = 2);
+      saveQ6Draft();
+      return;
+    }
+    if (stage == 1 && editingIndex != null) {
+      final previousIndex = editingIndex! - 1;
+      if (previousIndex >= 0) {
+        editGratitude(previousIndex);
+      } else {
+        setState(() {
+          stage = 0;
+          editingIndex = null;
+        });
+        saveQ6Draft();
+      }
+      return;
+    }
+    if (stage == 2 && gratitudes.isNotEmpty) {
+      // Back from the summary edits the last saved gratitude. A new fourth
+      // (or later) entry is created only by the explicit add button.
+      editGratitude(gratitudes.length - 1);
+      return;
+    }
     setState(() {
       stage = previousQuestion6Stage(stage);
       editingIndex = null;

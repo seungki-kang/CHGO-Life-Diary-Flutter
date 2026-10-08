@@ -91,7 +91,6 @@ class _LifeDiaryReadyPageState extends State<LifeDiaryReadyPage> {
   }
 
   Future<void> previousStep() async {
-    currentLifeDiaryDraft.q1Completed = false;
     if (step == 4 && noOldSelfToday) {
       setState(() {
         step = 1;

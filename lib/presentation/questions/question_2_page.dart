@@ -31,9 +31,11 @@ class _LifeDiaryQuestion2PageState extends State<LifeDiaryQuestion2Page> {
   late final List<String> confessionQueue;
   final List<String> completedOldSelves = [];
   int currentIndex = 0;
+  bool reviewingCompleted = false;
   String? guidanceMessage;
 
   bool get q2AllComplete =>
+      !reviewingCompleted &&
       confessionQueue.isNotEmpty &&
       confessionQueue.every(
         (oldSelf) =>
@@ -71,12 +73,10 @@ class _LifeDiaryQuestion2PageState extends State<LifeDiaryQuestion2Page> {
   Future<void> handleBack() async {
     if (q2AllComplete) {
       final target = confessionQueue.length - 1;
-      final oldSelf = confessionQueue[target];
       setState(() {
-        currentLifeDiaryDraft.q2CompletedOldSelves.remove(oldSelf);
-        completedOldSelves.remove(oldSelf);
+        reviewingCompleted = true;
         currentIndex = target;
-        confessionController.clear();
+        confessionController.text = confessionSentence(confessionQueue[target]);
         guidanceMessage = null;
       });
       saveQ2Draft();
@@ -87,10 +87,9 @@ class _LifeDiaryQuestion2PageState extends State<LifeDiaryQuestion2Page> {
       final target = currentIndex - 1;
       final oldSelf = confessionQueue[target];
       setState(() {
-        currentLifeDiaryDraft.q2CompletedOldSelves.remove(oldSelf);
-        completedOldSelves.remove(oldSelf);
         currentIndex = target;
-        confessionController.clear();
+        // Preserve the fixed confession while reopening the previous step.
+        confessionController.text = confessionSentence(oldSelf);
         guidanceMessage = null;
       });
       saveQ2Draft();
@@ -285,6 +284,26 @@ class _LifeDiaryQuestion2PageState extends State<LifeDiaryQuestion2Page> {
     completedOldSelves.add(completed);
     if (!currentLifeDiaryDraft.q2CompletedOldSelves.contains(completed)) {
       currentLifeDiaryDraft.q2CompletedOldSelves.add(completed);
+    }
+
+    if (reviewingCompleted) {
+      if (currentIndex < confessionQueue.length - 1) {
+        setState(() {
+          currentIndex++;
+          confessionController.text = confessionSentence(
+            confessionQueue[currentIndex],
+          );
+          guidanceMessage = null;
+        });
+      } else {
+        setState(() {
+          reviewingCompleted = false;
+          confessionController.clear();
+          guidanceMessage = null;
+        });
+      }
+      saveQ2Draft();
+      return;
     }
 
     if (currentIndex < confessionQueue.length - 1) {
