@@ -88,6 +88,20 @@ void main() {
     },
   );
 
+  test('same owner season and session updates the existing entry', () async {
+    await repository.save(buildEntry(entryId: 'legacy-entry-id'));
+    await repository.save(
+      buildEntry(entryId: 'new-generated-id', q1Narrative: '같은 회차 수정'),
+    );
+
+    final rows = await database.query('life_diary_entry');
+    final answers = await repository.findById('legacy-entry-id');
+
+    expect(rows, hasLength(1));
+    expect(rows.single['entry_id'], 'legacy-entry-id');
+    expect(answers!.questions.q1.narrative, '같은 회차 수정');
+  });
+
   test('LD-015 tombstones entry and emits no raw narrative', () async {
     await repository.save(buildEntry(q1Narrative: '민감한 원문'));
     await repository.tombstone('entry-001');
@@ -151,10 +165,11 @@ void main() {
 }
 
 LifeDiaryEntry buildEntry({
+  String entryId = 'entry-001',
   String q1Narrative = '처음 기록',
   LifeDiaryEntryStatus status = LifeDiaryEntryStatus.draft,
 }) => LifeDiaryEntry(
-  entryId: 'entry-001',
+  entryId: entryId,
   ownerUserId: 'owner-001',
   seasonNumber: 1,
   sessionNumber: 1,

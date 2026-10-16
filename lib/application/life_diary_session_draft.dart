@@ -112,6 +112,7 @@ class LifeDiarySessionDraft {
   int q4DeclarationIndex = 0;
   int q4AdditionalIndex = 0;
   final List<String> q4AdditionalQueue = [];
+  final Set<String> q4AdditionalCompletedOldSelves = {};
 
   int q5Stage = 0;
   String? q5Selection;
@@ -181,6 +182,8 @@ class LifeDiarySessionDraft {
     'q4_declaration_index': q4DeclarationIndex,
     'q4_additional_index': q4AdditionalIndex,
     'q4_additional_queue': q4AdditionalQueue,
+    'q4_additional_completed_old_selves': q4AdditionalCompletedOldSelves
+        .toList(),
     'q5_stage': q5Stage,
     'q5_selection': q5Selection,
     'q5_daily_record': q5DailyRecord,
@@ -269,6 +272,9 @@ class LifeDiarySessionDraft {
     q4DeclarationIndex = number('q4_declaration_index');
     q4AdditionalIndex = number('q4_additional_index');
     q4AdditionalQueue.addAll(strings('q4_additional_queue'));
+    q4AdditionalCompletedOldSelves.addAll(
+      strings('q4_additional_completed_old_selves'),
+    );
     q5Stage = number('q5_stage');
     q5Selection = json['q5_selection'] as String?;
     q5DailyRecord = text('q5_daily_record');
@@ -342,6 +348,7 @@ class LifeDiarySessionDraft {
     q4DeclarationIndex = 0;
     q4AdditionalIndex = 0;
     q4AdditionalQueue.clear();
+    q4AdditionalCompletedOldSelves.clear();
     q5Stage = 0;
     q5Selection = null;
     q5DailyRecord = '';

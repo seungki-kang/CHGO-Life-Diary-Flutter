@@ -48,7 +48,12 @@ class _LifeDiaryQuestion5PageState extends State<LifeDiaryQuestion5Page> {
 
   Future<void> handleBack() async {
     if (stage == 0) {
-      await confirmDraftExit(context, saveQ5Draft);
+      await goToPreviousLifeDiaryQuestion(
+        context,
+        widget.diaryDate,
+        5,
+        saveCurrent: saveQ5Draft,
+      );
       return;
     }
     setState(() {
@@ -303,10 +308,7 @@ class _LifeDiaryQuestion5PageState extends State<LifeDiaryQuestion5Page> {
             onPressed: dailyController.text.trim().isEmpty
                 ? null
                 : completeDailyRecord,
-            child: Text(
-              selection == 'both' ? '말씀을 통한 교제 기록하기' : '일상 교제 기록 완료',
-              style: const TextStyle(fontSize: 18),
-            ),
+            child: Text('일상 교제 기록 완료', style: const TextStyle(fontSize: 18)),
           ),
         ),
       ],
@@ -512,13 +514,11 @@ class _LifeDiaryQuestion5PageState extends State<LifeDiaryQuestion5Page> {
           height: 56,
           child: FilledButton(
             onPressed: () {
-              saveQ5Draft();
-              Navigator.push(
+              goToNextLifeDiaryQuestion(
                 context,
-                MaterialPageRoute(
-                  builder: (_) =>
-                      LifeDiaryQuestion6Page(diaryDate: widget.diaryDate),
-                ),
+                widget.diaryDate,
+                5,
+                saveCurrent: saveQ5Draft,
               );
             },
             child: const Text('6번으로 이동', style: TextStyle(fontSize: 18)),

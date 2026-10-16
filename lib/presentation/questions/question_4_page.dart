@@ -43,6 +43,7 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
   int declarationIndex = 0;
   int additionalIndex = 0;
   List<String> additionalQueue = [];
+  final Set<String> additionalCompletedOldSelves = {};
   String? guidance;
 
   @override
@@ -65,6 +66,35 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
     declarationIndex = draft.q4DeclarationIndex;
     additionalIndex = draft.q4AdditionalIndex;
     additionalQueue = List<String>.from(draft.q4AdditionalQueue);
+    additionalCompletedOldSelves.addAll(draft.q4AdditionalCompletedOldSelves);
+    // Backward-compatible migration: stage 5 means every queued confession
+    // was completed before the completed-items field existed.
+    if (stage == 5) {
+      additionalCompletedOldSelves.addAll(additionalQueue);
+    }
+    _normalizeRestoredAdditionalConfession();
+  }
+
+  void _normalizeRestoredAdditionalConfession() {
+    if (stage != 4 && stage != 5) return;
+    if (additionalQueue.isEmpty) {
+      additionalQueue = additionalOldSelves.toList();
+    }
+    if (additionalQueue.isEmpty) {
+      if (stage == 4) stage = 3;
+      additionalIndex = 0;
+      return;
+    }
+    additionalIndex =
+        additionalIndex.clamp(0, additionalQueue.length - 1) as int;
+    if (stage == 5 && additionalConfessionController.text.trim().isEmpty) {
+      // Stage 5 proves that the last canonical confession was completed.
+      // Rebuild the fixed sentence when an older serialized draft omitted
+      // the transient text-controller value.
+      additionalConfessionController.text = confessionSentence(
+        additionalQueue[additionalIndex],
+      );
+    }
   }
 
   void saveQ4Draft() {
@@ -92,6 +122,9 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
     draft.q4AdditionalQueue
       ..clear()
       ..addAll(additionalQueue);
+    draft.q4AdditionalCompletedOldSelves
+      ..clear()
+      ..addAll(additionalCompletedOldSelves);
     persistCurrentLifeDiaryDraft();
   }
 
@@ -100,7 +133,12 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
 
   Future<void> handleBack() async {
     if (stage == 0) {
-      await confirmDraftExit(context, saveQ4Draft);
+      await goToPreviousLifeDiaryQuestion(
+        context,
+        widget.diaryDate,
+        4,
+        saveCurrent: saveQ4Draft,
+      );
       return;
     }
     setState(() {
@@ -157,6 +195,7 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
         declarationController.clear();
         guidance = null;
       });
+      saveQ4Draft();
       return;
     }
     if (!eventComplete) return;
@@ -165,6 +204,7 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
       stage = 1;
       guidance = null;
     });
+    saveQ4Draft();
   }
 
   void checkNoRecordDeclaration() {
@@ -190,6 +230,7 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
         stage = 5;
       });
     }
+    saveQ4Draft();
   }
 
   void continueAfterReflection() {
@@ -198,23 +239,59 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
     } else if (newDiscoveryChoice != null) {
       setState(() => stage = 5);
     }
+    saveQ4Draft();
   }
 
   void beginAdditionalProcessing() {
     if (additionalOldSelves.isEmpty) return;
-    additionalQueue = additionalOldSelves.toList();
+    final nextQueue = additionalOldSelves.toList();
+    final previousItem =
+        additionalQueue.isNotEmpty &&
+            additionalIndex >= 0 &&
+            additionalIndex < additionalQueue.length
+        ? additionalQueue[additionalIndex]
+        : null;
+    final previousText = additionalConfessionController.text.trim();
+    final resumeIndex = previousItem == null
+        ? -1
+        : nextQueue.indexOf(previousItem);
+    // Set iteration order can change after leaving and reopening the screen.
+    // Preserve the confession by its actual old-self item, not list order.
+    final resumesCompletedConfession =
+        resumeIndex >= 0 &&
+        (previousText.isNotEmpty ||
+            additionalCompletedOldSelves.contains(previousItem));
+    additionalQueue = nextQueue;
     setState(() {
       // Retain the canonical compatibility flag without requiring a separate
       // 100% awareness claim from the user.
       acceptsOwnership = true;
       stage = 4;
-      additionalIndex = 0;
-      additionalConfessionController.clear();
+      if (resumesCompletedConfession) {
+        additionalIndex = resumeIndex;
+        if (additionalConfessionController.text.trim().isEmpty) {
+          additionalConfessionController.text = confessionSentence(
+            nextQueue[resumeIndex],
+          );
+        }
+      } else {
+        additionalIndex = 0;
+        additionalConfessionController.clear();
+      }
       guidance = null;
     });
+    saveQ4Draft();
   }
 
   void checkAdditionalConfession() {
+    if (additionalQueue.isEmpty) {
+      setState(() {
+        stage = 3;
+        additionalIndex = 0;
+      });
+      saveQ4Draft();
+      return;
+    }
     final expected = confessionSentence(additionalQueue[additionalIndex]);
     if (normalized(additionalConfessionController.text) !=
         normalized(expected)) {
@@ -226,6 +303,7 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
       });
       return;
     }
+    additionalCompletedOldSelves.add(additionalQueue[additionalIndex]);
     if (additionalIndex < additionalQueue.length - 1) {
       setState(() {
         additionalIndex++;
@@ -234,11 +312,14 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
       });
     } else {
       setState(() {
-        additionalConfessionController.clear();
+        // Keep the completed confession visible when the user returns from
+        // the completion step or from a later Life Diary question.
+        additionalConfessionController.text = expected;
         guidance = null;
         stage = 5;
       });
     }
+    saveQ4Draft();
   }
 
   Future<void> showSavedRecords() async {
@@ -669,6 +750,25 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
   }
 
   Widget _buildAdditionalConfession() {
+    if (additionalQueue.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            '추가 십자가 고백을 다시 준비해 주세요.',
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 24),
+          FilledButton(
+            onPressed: () {
+              setState(() => stage = 3);
+              saveQ4Draft();
+            },
+            child: const Text('추가로 발견한 옛사람 다시 선택'),
+          ),
+        ],
+      );
+    }
     final expected = confessionSentence(additionalQueue[additionalIndex]);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -698,7 +798,10 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
           inputFormatters: [keepMyRighteousnessWording],
           minLines: 3,
           maxLines: 5,
-          onChanged: (_) => setState(() => guidance = null),
+          onChanged: (_) {
+            setState(() => guidance = null);
+            saveQ4Draft();
+          },
           decoration: const InputDecoration(
             border: OutlineInputBorder(),
             hintText: '위 문장 전체를 직접 기록해 주세요.',
@@ -802,13 +905,11 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
           height: 56,
           child: FilledButton(
             onPressed: () {
-              saveQ4Draft();
-              Navigator.push(
+              goToNextLifeDiaryQuestion(
                 context,
-                MaterialPageRoute(
-                  builder: (_) =>
-                      LifeDiaryQuestion5Page(diaryDate: widget.diaryDate),
-                ),
+                widget.diaryDate,
+                4,
+                saveCurrent: saveQ4Draft,
               );
             },
             child: const Text('5번으로 이동', style: TextStyle(fontSize: 18)),

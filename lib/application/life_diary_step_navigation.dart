@@ -1,3 +1,33 @@
+const int lifeDiaryStartLocation = 0;
+const int firstLifeDiaryQuestion = 1;
+const int lastLifeDiaryQuestion = 7;
+
+int previousLifeDiaryLocation(int currentQuestion) {
+  if (currentQuestion < firstLifeDiaryQuestion ||
+      currentQuestion > lastLifeDiaryQuestion) {
+    throw RangeError.range(
+      currentQuestion,
+      firstLifeDiaryQuestion,
+      lastLifeDiaryQuestion,
+      'currentQuestion',
+    );
+  }
+  return currentQuestion - 1;
+}
+
+int nextLifeDiaryLocation(int currentLocation) {
+  if (currentLocation < lifeDiaryStartLocation ||
+      currentLocation >= lastLifeDiaryQuestion) {
+    throw RangeError.range(
+      currentLocation,
+      lifeDiaryStartLocation,
+      lastLifeDiaryQuestion - 1,
+      'currentLocation',
+    );
+  }
+  return currentLocation + 1;
+}
+
 int previousQuestion3Stage({
   required int stage,
   required bool noKingdomEnjoyment,

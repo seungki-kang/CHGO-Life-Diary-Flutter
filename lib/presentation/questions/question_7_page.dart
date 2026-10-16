@@ -15,6 +15,7 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
   int stage = 0;
   bool coachingRequested = false;
   bool _draftFinalized = false;
+  bool _isCompleting = false;
 
   @override
   void initState() {
@@ -56,7 +57,12 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
       return;
     }
     if (stage == 0) {
-      await confirmDraftExit(context, saveQ7Draft);
+      await goToPreviousLifeDiaryQuestion(
+        context,
+        widget.diaryDate,
+        7,
+        saveCurrent: saveQ7Draft,
+      );
       return;
     }
     setState(() => stage = previousQuestion7Stage(stage));
@@ -64,6 +70,7 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
   }
 
   Future<void> completeLifeDiary() async {
+    if (_isCompleting) return;
     saveQ7Draft();
     final issues = const LifeDiaryCompletionValidator().validate(
       currentLifeDiaryDraft.toJson(),
@@ -90,6 +97,7 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
       ),
     );
     if (confirmed != true || !mounted) return;
+    setState(() => _isCompleting = true);
     currentLifeDiaryDraft.q7FinalCompleted = true;
     saveQ7Draft();
     try {
@@ -134,6 +142,7 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
       }
     } catch (error) {
       currentLifeDiaryDraft.q7FinalCompleted = false;
+      saveQ7Draft();
       lifeDiaryLogger.error('life_diary.completed_entry_save_failed', {
         'operation': 'UPSERT',
         'source': 'LOCAL_SQLITE',
@@ -142,6 +151,10 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text('최종 저장에 실패했습니다: $error')));
+    } finally {
+      if (mounted && !_draftFinalized) {
+        setState(() => _isCompleting = false);
+      }
     }
   }
 
@@ -169,14 +182,11 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () {
                         Navigator.pop(dialogContext);
-                        Navigator.push(
+                        replaceLifeDiaryQuestion(
                           context,
-                          MaterialPageRoute(
-                            builder: (_) => buildLifeDiaryQuestionPage(
-                              widget.diaryDate,
-                              issue.questionNumber,
-                            ),
-                          ),
+                          widget.diaryDate,
+                          issue.questionNumber,
+                          saveCurrent: saveQ7Draft,
                         );
                       },
                     ),
@@ -453,8 +463,11 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
       SizedBox(
         height: 58,
         child: FilledButton(
-          onPressed: completeLifeDiary,
-          child: const Text('생명일기 최종 완성', style: TextStyle(fontSize: 18)),
+          onPressed: _isCompleting ? null : completeLifeDiary,
+          child: Text(
+            _isCompleting ? '최종 저장 중…' : '생명일기 최종 완성',
+            style: const TextStyle(fontSize: 18),
+          ),
         ),
       ),
     ],

@@ -43,12 +43,24 @@ class LifeDiaryCompletionValidator {
         }
         return '오늘 발견한 옛사람 기록과 확인 단계를 마쳐 주세요.';
       case 2:
-        final required = _flag(draft, 'q1_no_old_self')
-            ? 7
-            : _strings(draft, 'q1_old_selves').length;
-        if (required > 0 &&
-            _strings(draft, 'q2_completed_old_selves').length >= required &&
-            _text(draft, 'q2_partial_text').isEmpty) {
+        const allOldSelves = [
+          '수치심',
+          '죄책감',
+          '두려움',
+          '자기의(신념·고정관념)',
+          '과거의 상처',
+          '인정받고 싶은 욕구',
+          '죽음의 공포',
+        ];
+        final requiredOldSelves = _flag(draft, 'q1_no_old_self')
+            ? allOldSelves
+            : _strings(draft, 'q1_old_selves');
+        final completedOldSelves = _strings(
+          draft,
+          'q2_completed_old_selves',
+        ).toSet();
+        if (requiredOldSelves.isNotEmpty &&
+            requiredOldSelves.every(completedOldSelves.contains)) {
           return null;
         }
         return '1번에서 선택한 옛사람의 십자가 고백을 모두 마쳐 주세요.';
@@ -61,14 +73,43 @@ class LifeDiaryCompletionValidator {
             ? null
             : '관계 사건을 사랑과 긍휼로 돌아보는 과정을 완료해 주세요.';
       case 5:
-        return _number(draft, 'q5_stage') >= 4 ? null : '성령님과의 교제 기록을 완료해 주세요.';
+        final selection = _text(draft, 'q5_selection');
+        final hasDaily = _text(draft, 'q5_daily_record').isNotEmpty;
+        final hasWord = _text(draft, 'q5_word_record').isNotEmpty;
+        final hasNoRecordDeclaration = _text(
+          draft,
+          'q5_no_record_declaration',
+        ).isNotEmpty;
+        final branchComplete = switch (selection) {
+          'daily' => hasDaily,
+          'word' => hasWord,
+          'both' => hasDaily && hasWord,
+          'none' => hasNoRecordDeclaration,
+          _ => false,
+        };
+        return _number(draft, 'q5_stage') >= 4 && branchComplete
+            ? null
+            : '선택한 성령님과의 교제 기록을 완료해 주세요.';
       case 6:
-        final completeGratitudes = _maps(draft, 'q6_gratitudes').where((item) {
-          return _mapText(item, 'person').isNotEmpty &&
-              (_mapText(item, 'what').isNotEmpty ||
-                  _mapText(item, 'why').isNotEmpty);
-        }).length;
-        return _number(draft, 'q6_stage') >= 3 && completeGratitudes >= 3
+        final completeGratitudes = _maps(draft, 'q6_gratitudes')
+            .where((item) {
+              return _mapText(item, 'person').isNotEmpty &&
+                  (_mapText(item, 'what').isNotEmpty ||
+                      _mapText(item, 'why').isNotEmpty);
+            })
+            .map(
+              (item) => [
+                _mapText(item, 'person'),
+                _mapText(item, 'what'),
+                _mapText(item, 'why'),
+                _mapText(item, 'type'),
+              ].join('\u0000'),
+            )
+            .toSet()
+            .length;
+        // Q6 uses stage 2 as its single canonical completion summary.
+        // Older drafts that stored stage 3 remain compatible through >= 2.
+        return _number(draft, 'q6_stage') >= 2 && completeGratitudes >= 3
             ? null
             : '감사 기록을 3개 이상 작성하고 6번을 완료해 주세요.';
       case 7:

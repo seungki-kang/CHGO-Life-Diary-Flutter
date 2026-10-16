@@ -524,15 +524,11 @@ class _LifeDiaryReadyPageState extends State<LifeDiaryReadyPage> {
                 Navigator.pop(context, true);
                 return;
               }
-              Navigator.push(
+              goToNextLifeDiaryQuestion(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => LifeDiaryQuestion2Page(
-                    diaryDate: widget.diaryDate,
-                    selectedOldSelves: selectedRoots.toList(),
-                    noOldSelfToday: noOldSelfToday,
-                  ),
-                ),
+                widget.diaryDate,
+                1,
+                saveCurrent: saveQ1Draft,
               );
             },
             child: Text(

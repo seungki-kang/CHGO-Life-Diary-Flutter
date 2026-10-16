@@ -2,6 +2,33 @@ import 'package:chgo_life_diary/application/life_diary_step_navigation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('whole diary moves backward from Q7 to the start in strict order', () {
+    var location = 7;
+    final visited = <int>[location];
+    while (location > lifeDiaryStartLocation) {
+      location = previousLifeDiaryLocation(location);
+      visited.add(location);
+    }
+    expect(visited, <int>[7, 6, 5, 4, 3, 2, 1, 0]);
+  });
+
+  test('whole diary moves forward from the start to Q7 in strict order', () {
+    var location = lifeDiaryStartLocation;
+    final visited = <int>[location];
+    while (location < lastLifeDiaryQuestion) {
+      location = nextLifeDiaryLocation(location);
+      visited.add(location);
+    }
+    expect(visited, <int>[0, 1, 2, 3, 4, 5, 6, 7]);
+  });
+
+  test('question navigation rejects locations outside its boundaries', () {
+    expect(() => previousLifeDiaryLocation(0), throwsRangeError);
+    expect(() => previousLifeDiaryLocation(8), throwsRangeError);
+    expect(() => nextLifeDiaryLocation(-1), throwsRangeError);
+    expect(() => nextLifeDiaryLocation(7), throwsRangeError);
+  });
+
   test('Q3 record screen returns to kingdom realm selection', () {
     expect(previousQuestion3Stage(stage: 1, noKingdomEnjoyment: false), 0);
   });

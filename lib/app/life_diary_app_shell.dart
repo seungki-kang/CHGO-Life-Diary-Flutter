@@ -124,6 +124,64 @@ Future<void> confirmDraftExit(
   if (context.mounted) Navigator.pop(context);
 }
 
+/// Moves between diary questions by canonical question order, not route history.
+///
+/// Replacing the current question route prevents grid jumps (for example Q2
+/// -> Q4) from leaving a stale Q2 route underneath Q4. Every transition first
+/// saves the visible question and waits for that write to finish.
+Future<void> replaceLifeDiaryQuestion(
+  BuildContext context,
+  DateTime diaryDate,
+  int targetQuestion, {
+  VoidCallback? saveCurrent,
+}) async {
+  if (targetQuestion < 1 || targetQuestion > 7) {
+    throw RangeError.range(targetQuestion, 1, 7, 'targetQuestion');
+  }
+  saveCurrent?.call();
+  await _draftWrite;
+  if (!context.mounted) return;
+  await Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(
+      builder: (_) => buildLifeDiaryQuestionPage(diaryDate, targetQuestion),
+    ),
+  );
+}
+
+Future<void> goToPreviousLifeDiaryQuestion(
+  BuildContext context,
+  DateTime diaryDate,
+  int currentQuestion, {
+  required VoidCallback saveCurrent,
+}) async {
+  if (currentQuestion <= 1) {
+    await confirmDraftExit(context, saveCurrent);
+    return;
+  }
+  await replaceLifeDiaryQuestion(
+    context,
+    diaryDate,
+    previousLifeDiaryLocation(currentQuestion),
+    saveCurrent: saveCurrent,
+  );
+}
+
+Future<void> goToNextLifeDiaryQuestion(
+  BuildContext context,
+  DateTime diaryDate,
+  int currentQuestion, {
+  required VoidCallback saveCurrent,
+}) async {
+  if (currentQuestion >= 7) return;
+  await replaceLifeDiaryQuestion(
+    context,
+    diaryDate,
+    nextLifeDiaryLocation(currentQuestion),
+    saveCurrent: saveCurrent,
+  );
+}
+
 Future<void> showLifeDiaryQuestionNavigator(
   BuildContext context,
   DateTime diaryDate,
@@ -183,15 +241,12 @@ Future<void> showLifeDiaryQuestionNavigator(
                 onTap: !available || number == currentQuestion
                     ? null
                     : () {
-                        saveCurrent?.call();
                         Navigator.pop(sheetContext);
-                        final page = buildLifeDiaryQuestionPage(
+                        replaceLifeDiaryQuestion(
+                          context,
                           diaryDate,
                           number,
-                        );
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => page),
+                          saveCurrent: saveCurrent,
                         );
                       },
               );
@@ -367,7 +422,7 @@ class LifeDiaryStartPage extends StatelessWidget {
                 const SizedBox(height: 24),
 
                 const Text(
-                  'Flutter V0.17a',
+                  'Flutter V0.18a',
                   style: TextStyle(fontSize: 12, color: Colors.grey),
                 ),
               ],

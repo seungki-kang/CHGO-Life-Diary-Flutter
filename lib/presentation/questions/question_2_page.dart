@@ -34,13 +34,15 @@ class _LifeDiaryQuestion2PageState extends State<LifeDiaryQuestion2Page> {
   bool reviewingCompleted = false;
   String? guidanceMessage;
 
-  bool get q2AllComplete =>
-      !reviewingCompleted &&
+  bool get allRequiredConfessionsComplete =>
       confessionQueue.isNotEmpty &&
       confessionQueue.every(
         (oldSelf) =>
             currentLifeDiaryDraft.q2CompletedOldSelves.contains(oldSelf),
       );
+
+  bool get q2AllComplete =>
+      !reviewingCompleted && allRequiredConfessionsComplete;
 
   @override
   void initState() {
@@ -66,7 +68,11 @@ class _LifeDiaryQuestion2PageState extends State<LifeDiaryQuestion2Page> {
   void saveQ2Draft() {
     if (!_draftLifecycle.shouldPersist) return;
     currentLifeDiaryDraft.q2CurrentIndex = currentIndex;
-    currentLifeDiaryDraft.q2PartialText = confessionController.text;
+    // A fixed sentence opened only for review must never turn an already
+    // completed Q2 back into an in-progress answer.
+    currentLifeDiaryDraft.q2PartialText = allRequiredConfessionsComplete
+        ? ''
+        : confessionController.text;
     persistCurrentLifeDiaryDraft();
   }
 
@@ -96,7 +102,12 @@ class _LifeDiaryQuestion2PageState extends State<LifeDiaryQuestion2Page> {
       return;
     }
 
-    await confirmDraftExit(context, saveQ2Draft);
+    await goToPreviousLifeDiaryQuestion(
+      context,
+      widget.diaryDate,
+      2,
+      saveCurrent: saveQ2Draft,
+    );
   }
 
   @override
@@ -319,12 +330,11 @@ class _LifeDiaryQuestion2PageState extends State<LifeDiaryQuestion2Page> {
 
     currentLifeDiaryDraft.q2CurrentIndex = currentIndex;
     currentLifeDiaryDraft.q2PartialText = '';
-    Navigator.push(
+    goToNextLifeDiaryQuestion(
       context,
-      MaterialPageRoute(
-        builder: (context) =>
-            LifeDiaryQuestion3Page(diaryDate: widget.diaryDate),
-      ),
+      widget.diaryDate,
+      2,
+      saveCurrent: saveQ2Draft,
     );
   }
 
@@ -396,12 +406,11 @@ class _LifeDiaryQuestion2PageState extends State<LifeDiaryQuestion2Page> {
                 SizedBox(
                   height: 56,
                   child: FilledButton(
-                    onPressed: () => Navigator.push(
+                    onPressed: () => goToNextLifeDiaryQuestion(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            LifeDiaryQuestion3Page(diaryDate: widget.diaryDate),
-                      ),
+                      widget.diaryDate,
+                      2,
+                      saveCurrent: saveQ2Draft,
                     ),
                     child: const Text(
                       '3번으로 이동',

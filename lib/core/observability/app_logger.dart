@@ -11,10 +11,10 @@ class AppLogger {
     AppLogLevel? minimumLevel,
     LogSink? sink,
     DateTime Function()? clock,
-  })  : minimumLevel = minimumLevel ??
-            (kDebugMode ? AppLogLevel.debug : AppLogLevel.info),
-        _sink = sink ?? debugPrint,
-        _clock = clock ?? DateTime.now;
+  }) : minimumLevel =
+           minimumLevel ?? (kDebugMode ? AppLogLevel.debug : AppLogLevel.info),
+       _sink = sink ?? debugPrint,
+       _clock = clock ?? DateTime.now;
 
   final AppLogLevel minimumLevel;
   final LogSink _sink;
@@ -35,11 +35,7 @@ class AppLogger {
   void audit(String event, [Map<String, Object?> metadata = const {}]) =>
       log(AppLogLevel.audit, event, metadata);
 
-  void log(
-    AppLogLevel level,
-    String event,
-    Map<String, Object?> metadata,
-  ) {
+  void log(AppLogLevel level, String event, Map<String, Object?> metadata) {
     if (!_enabled(level)) return;
     final safeMetadata = <String, Object?>{};
     var droppedFields = 0;
@@ -52,12 +48,14 @@ class AppLogger {
       }
     }
     if (droppedFields > 0) safeMetadata['dropped_fields'] = droppedFields;
-    _sink(jsonEncode({
-      'timestamp': _clock().toUtc().toIso8601String(),
-      'level': level.name.toUpperCase(),
-      'event': _safeEvent(event),
-      'metadata': safeMetadata,
-    }));
+    _sink(
+      jsonEncode({
+        'timestamp': _clock().toUtc().toIso8601String(),
+        'level': level.name.toUpperCase(),
+        'event': _safeEvent(event),
+        'metadata': safeMetadata,
+      }),
+    );
   }
 
   bool _enabled(AppLogLevel level) {

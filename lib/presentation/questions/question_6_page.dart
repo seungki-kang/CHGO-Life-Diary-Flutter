@@ -27,14 +27,34 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
     gratitudes.addAll(
       draft.q6Gratitudes.map((item) => Map<String, String>.from(item)),
     );
+    _removeDuplicateGratitudes();
     personController.text = draft.q6Person;
     whatController.text = _combinedGratitude(draft.q6What, draft.q6Why);
     situationType = draft.q6SituationType;
     editingIndex = draft.q6EditingIndex;
+    // Stage 3 used to be a second completion summary.  Collapse older drafts
+    // to the single three-or-more summary so Q7 -> Q6 never shows duplicates.
+    if (stage == 3) stage = 2;
+    if (editingIndex != null &&
+        (editingIndex! < 0 || editingIndex! >= gratitudes.length)) {
+      editingIndex = null;
+    }
+    // A saved list of three or more gratitudes is the authoritative complete
+    // state. Empty transient fields must not reopen an accidental next entry.
+    if (gratitudes.length < 3 && stage >= 2) {
+      stage = 1;
+    }
+    if (gratitudes.length >= 3 &&
+        editingIndex == null &&
+        personController.text.trim().isEmpty &&
+        whatController.text.trim().isEmpty) {
+      stage = 2;
+    }
   }
 
   void saveQ6Draft() {
     if (!_draftLifecycle.shouldPersist) return;
+    _removeDuplicateGratitudes();
     final draft = currentLifeDiaryDraft;
     draft.q6Stage = stage;
     draft.q6Gratitudes
@@ -57,6 +77,28 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
       personController.text.trim().isNotEmpty &&
       whatController.text.trim().isNotEmpty;
 
+  String _gratitudeKey(Map<String, String> item) => [
+    item['person']?.trim() ?? '',
+    item['what']?.trim() ?? '',
+    item['why']?.trim() ?? '',
+    item['type']?.trim() ?? '',
+  ].join('\u0000');
+
+  void _removeDuplicateGratitudes() {
+    final seen = <String>{};
+    final unique = <Map<String, String>>[];
+    for (final item in gratitudes) {
+      if (seen.add(_gratitudeKey(item))) {
+        unique.add(Map<String, String>.from(item));
+      }
+    }
+    if (unique.length != gratitudes.length) {
+      gratitudes
+        ..clear()
+        ..addAll(unique);
+    }
+  }
+
   String _combinedGratitude(String what, String why) {
     final normalizedWhat = what.trim();
     final normalizedWhy = why.trim();
@@ -68,7 +110,17 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
   }
 
   void startRecording() {
-    setState(() => stage = 1);
+    setState(() {
+      editingIndex = null;
+      situationType = null;
+      if (gratitudes.length >= 3) {
+        personController.clear();
+        whatController.clear();
+        stage = 2;
+      } else {
+        stage = 1;
+      }
+    });
     saveQ6Draft();
   }
 
@@ -84,7 +136,12 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
     if (index != null && index < gratitudes.length) {
       gratitudes[index] = item;
     } else {
-      gratitudes.add(item);
+      // Reopening Q6 can restore the last text fields. Never append the same
+      // saved gratitude again as a new record.
+      final duplicateIndex = gratitudes.indexWhere(
+        (saved) => _gratitudeKey(saved) == _gratitudeKey(item),
+      );
+      if (duplicateIndex < 0) gratitudes.add(item);
     }
 
     personController.clear();
@@ -138,15 +195,28 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
     saveQ6Draft();
   }
 
-  void finishQuestion6() {
+  Future<void> finishQuestion6() async {
     if (gratitudes.length < 3) return;
-    setState(() => stage = 3);
+    // Keep one canonical summary state. Going back from Q7 now returns to
+    // stage 2 instead of an additional, nearly identical completion screen.
+    setState(() => stage = 2);
     saveQ6Draft();
+    await goToNextLifeDiaryQuestion(
+      context,
+      widget.diaryDate,
+      6,
+      saveCurrent: saveQ6Draft,
+    );
   }
 
   Future<void> handleBack() async {
     if (stage == 0) {
-      await confirmDraftExit(context, saveQ6Draft);
+      await goToPreviousLifeDiaryQuestion(
+        context,
+        widget.diaryDate,
+        6,
+        saveCurrent: saveQ6Draft,
+      );
       return;
     }
     if (stage == 1 && editingIndex == null && gratitudes.length >= 3) {
@@ -167,10 +237,15 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
       }
       return;
     }
-    if (stage == 2 && gratitudes.isNotEmpty) {
-      // Back from the summary edits the last saved gratitude. A new fourth
-      // (or later) entry is created only by the explicit add button.
-      editGratitude(gratitudes.length - 1);
+    if (stage == 2) {
+      // Editing is available through each card's explicit edit button.
+      // The app-bar back button always continues to the previous question.
+      await goToPreviousLifeDiaryQuestion(
+        context,
+        widget.diaryDate,
+        6,
+        saveCurrent: saveQ6Draft,
+      );
       return;
     }
     setState(() {
@@ -541,13 +616,11 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
           height: 56,
           child: FilledButton(
             onPressed: () {
-              saveQ6Draft();
-              Navigator.push(
+              goToNextLifeDiaryQuestion(
                 context,
-                MaterialPageRoute(
-                  builder: (_) =>
-                      LifeDiaryQuestion7Page(diaryDate: widget.diaryDate),
-                ),
+                widget.diaryDate,
+                6,
+                saveCurrent: saveQ6Draft,
               );
             },
             child: const Text('생명일기 7번으로', style: TextStyle(fontSize: 18)),

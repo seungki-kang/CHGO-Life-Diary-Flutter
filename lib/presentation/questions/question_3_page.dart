@@ -65,6 +65,63 @@ class _LifeDiaryQuestion3PageState extends State<LifeDiaryQuestion3Page> {
     noKingdomEnjoymentToday = draft.q3NoEnjoyment;
     noSpecificFruit = draft.q3NoSpecificFruit;
     editingRecordIndex = draft.q3EditingRecordIndex;
+    _normalizeRestoredState();
+  }
+
+  /// Repairs partial or older Q3 drafts before the first frame is built.
+  ///
+  /// A draft can legitimately be saved while moving Q2 -> Q3 -> Q4 in either
+  /// direction.  Older drafts did not always contain the derived queue fields,
+  /// even though their stage and text fields were present.  Never index those
+  /// derived lists until they have been reconstructed and clamped.
+  void _normalizeRestoredState() {
+    if (stage < 0 || stage > 4) stage = 0;
+
+    if (stage == 1) {
+      if (realmQueue.isEmpty) {
+        realmQueue.addAll(selectedRealms);
+      }
+      if (realmQueue.isEmpty && enjoymentRecords.isNotEmpty) {
+        final restoredRealm = enjoymentRecords.last['realm']?.trim();
+        realmQueue.add(
+          restoredRealm == null || restoredRealm.isEmpty
+              ? '내 안'
+              : restoredRealm,
+        );
+      }
+      if (realmQueue.isEmpty) {
+        // Keep already typed text visible even when an older draft omitted
+        // both derived and selected realm metadata.
+        realmQueue.add('내 안');
+        selectedRealms.add('내 안');
+        realmIndex = 0;
+      } else {
+        realmIndex = realmIndex.clamp(0, realmQueue.length - 1) as int;
+      }
+    }
+
+    if (stage == 3) {
+      if (missingFruits.isEmpty) {
+        missingFruits.addAll(
+          noKingdomEnjoymentToday
+              ? fruits
+              : fruits.where((fruit) => !selectedFruits.contains(fruit)),
+        );
+      }
+      if (missingFruits.isEmpty) {
+        stage = 4;
+        missingIndex = 0;
+      } else {
+        missingIndex = missingIndex.clamp(0, missingFruits.length - 1) as int;
+      }
+    }
+
+    final restoredEditingIndex = editingRecordIndex;
+    if (restoredEditingIndex != null &&
+        (restoredEditingIndex < 0 ||
+            restoredEditingIndex >= enjoymentRecords.length)) {
+      editingRecordIndex = null;
+    }
   }
 
   void saveQ3Draft() {
@@ -107,7 +164,35 @@ class _LifeDiaryQuestion3PageState extends State<LifeDiaryQuestion3Page> {
 
   Future<void> handleBack() async {
     if (stage == 0) {
-      await confirmDraftExit(context, saveQ3Draft);
+      await goToPreviousLifeDiaryQuestion(
+        context,
+        widget.diaryDate,
+        3,
+        saveCurrent: saveQ3Draft,
+      );
+      return;
+    }
+    if (stage == 2 && enjoymentRecords.isNotEmpty) {
+      final lastIndex = enjoymentRecords.length - 1;
+      final record = enjoymentRecords[lastIndex];
+      setState(() {
+        editingRecordIndex = lastIndex;
+        realmQueue
+          ..clear()
+          ..add(record['realm'] ?? '내 안');
+        realmIndex = 0;
+        eventController.text = _combinedText(
+          record['event'] ?? '',
+          record['discovery'] ?? '',
+        );
+        declarationController.text = _combinedText(
+          record['declaration'] ?? '',
+          record['enjoyment'] ?? '',
+        );
+        stage = 1;
+        identityGuidance = null;
+      });
+      saveQ3Draft();
       return;
     }
     setState(() {
@@ -173,6 +258,15 @@ class _LifeDiaryQuestion3PageState extends State<LifeDiaryQuestion3Page> {
   }
 
   void saveCurrentRecord() {
+    if (realmQueue.isEmpty) {
+      setState(() {
+        stage = 0;
+        realmIndex = 0;
+      });
+      saveQ3Draft();
+      return;
+    }
+    realmIndex = realmIndex.clamp(0, realmQueue.length - 1) as int;
     final record = <String, String>{
       'realm': realmQueue[realmIndex],
       'event': eventController.text.trim(),
@@ -238,6 +332,15 @@ class _LifeDiaryQuestion3PageState extends State<LifeDiaryQuestion3Page> {
   }
 
   void checkIdentityDeclaration() {
+    if (missingFruits.isEmpty) {
+      setState(() {
+        stage = 4;
+        missingIndex = 0;
+      });
+      saveQ3Draft();
+      return;
+    }
+    missingIndex = missingIndex.clamp(0, missingFruits.length - 1) as int;
     final expected = identitySentence(missingFruits[missingIndex]);
     if (normalized(identityController.text) == normalized(expected)) {
       if (missingIndex < missingFruits.length - 1) {
@@ -510,6 +613,15 @@ class _LifeDiaryQuestion3PageState extends State<LifeDiaryQuestion3Page> {
   }
 
   Widget _buildEnjoymentRecord() {
+    if (realmQueue.isEmpty) {
+      return _buildRecoverableDraftNotice('기록할 영역을 다시 확인해 주세요.', () {
+        setState(() {
+          stage = 0;
+          realmIndex = 0;
+        });
+        saveQ3Draft();
+      });
+    }
     final realm = realmQueue[realmIndex];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -643,6 +755,22 @@ class _LifeDiaryQuestion3PageState extends State<LifeDiaryQuestion3Page> {
   }
 
   Widget _buildMissingFruitDeclaration() {
+    if (missingFruits.isEmpty) {
+      return _buildRecoverableDraftNotice('성령의 열매 기록을 다시 확인해 주세요.', () {
+        setState(() {
+          missingFruits
+            ..clear()
+            ..addAll(
+              noKingdomEnjoymentToday
+                  ? fruits
+                  : fruits.where((fruit) => !selectedFruits.contains(fruit)),
+            );
+          missingIndex = 0;
+          stage = missingFruits.isEmpty ? 4 : 3;
+        });
+        saveQ3Draft();
+      });
+    }
     final fruit = missingFruits[missingIndex];
     final expected = identitySentence(fruit);
     return Column(
@@ -733,6 +861,19 @@ class _LifeDiaryQuestion3PageState extends State<LifeDiaryQuestion3Page> {
             ),
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildRecoverableDraftNotice(String message, VoidCallback onRecover) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _questionTitle(),
+        const SizedBox(height: 24),
+        Text(message, style: const TextStyle(fontSize: 16, height: 1.5)),
+        const SizedBox(height: 24),
+        FilledButton(onPressed: onRecover, child: const Text('기록 계속하기')),
       ],
     );
   }
@@ -833,13 +974,11 @@ class _LifeDiaryQuestion3PageState extends State<LifeDiaryQuestion3Page> {
           height: 56,
           child: FilledButton(
             onPressed: () {
-              saveQ3Draft();
-              Navigator.push(
+              goToNextLifeDiaryQuestion(
                 context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      LifeDiaryQuestion4Page(diaryDate: widget.diaryDate),
-                ),
+                widget.diaryDate,
+                3,
+                saveCurrent: saveQ3Draft,
               );
             },
             child: const Text('4번으로 이동', style: TextStyle(fontSize: 18)),
