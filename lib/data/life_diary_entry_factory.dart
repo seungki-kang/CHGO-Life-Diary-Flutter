@@ -42,6 +42,7 @@ class LifeDiaryEntryFactory {
               item.what.isNotEmpty ||
               item.why.isNotEmpty,
         );
+    final q3Text = _q3Text(draft);
 
     return LifeDiaryEntry(
       entryId:
@@ -68,13 +69,8 @@ class LifeDiaryEntryFactory {
         ),
         q3: Q3Payload(
           contexts: contexts,
-          narrative: _joined([
-            _text(draft['q3_event']),
-            _text(draft['q3_discovery']),
-            _text(draft['q3_enjoyment']),
-            _text(draft['q3_identity']),
-          ]),
-          declaration: _text(draft['q3_declaration']),
+          narrative: q3Text.narrative,
+          declaration: q3Text.declaration,
           fruitIds: fruitIds,
         ),
         q4: Q4Payload(
@@ -141,6 +137,60 @@ const _kingdomContexts = <String, KingdomContext>{
   '내 안': KingdomContext.inner,
   '공동체·관계 안': KingdomContext.community,
 };
+
+/// Q3 text for the stored entry.
+///
+/// The Q3 screen saves each realm's record into `q3_enjoyment_records` and then
+/// clears its input fields, so the flat `q3_event` / `q3_declaration` fields are
+/// empty once records exist. Reading only the flat fields stored every completed
+/// Q3 as blank. Records are the source of truth; the flat fields remain a
+/// fallback for older drafts written before records existed.
+({String narrative, String declaration}) _q3Text(Map<String, Object?> draft) {
+  final records = _maps(draft['q3_enjoyment_records']).where(
+    (record) => [
+      'event',
+      'discovery',
+      'declaration',
+      'enjoyment',
+    ].any((key) => _text(record[key]).isNotEmpty),
+  );
+  if (records.isEmpty) {
+    return (
+      narrative: _joined([
+        _text(draft['q3_event']),
+        _text(draft['q3_discovery']),
+        _text(draft['q3_enjoyment']),
+        _text(draft['q3_identity']),
+      ]),
+      declaration: _text(draft['q3_declaration']),
+    );
+  }
+  return (
+    narrative: _joined(
+      records.map(
+        (record) => _withRealm(
+          record,
+          _joined([_text(record['event']), _text(record['discovery'])]),
+        ),
+      ),
+    ),
+    declaration: _joined(
+      records.map(
+        (record) => _withRealm(
+          record,
+          _joined([_text(record['declaration']), _text(record['enjoyment'])]),
+        ),
+      ),
+    ),
+  );
+}
+
+/// Prefixes a record's text with its realm so two realms stay distinguishable.
+String _withRealm(Map<String, Object?> record, String text) {
+  if (text.isEmpty) return '';
+  final realm = _text(record['realm']);
+  return realm.isEmpty ? text : '[$realm] $text';
+}
 
 CommunionType _communionType(Object? selection) => switch (selection) {
   'daily' => CommunionType.whisper,

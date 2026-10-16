@@ -42,4 +42,42 @@ void main() {
       isTrue,
     );
   });
+
+  group('restoredDraftAction', () {
+    final lifecycle = LifeDiaryDraftLifecycle();
+    RestoredDraftAction decide({
+      bool restored = true,
+      bool finalCompleted = false,
+      int draftSession = 5,
+      int nextSession = 5,
+    }) => lifecycle.restoredDraftAction(
+      restored: restored,
+      finalCompleted: finalCompleted,
+      draftSeason: 1,
+      draftSession: draftSession,
+      nextSeason: 1,
+      nextSession: nextSession,
+    );
+
+    test('no saved draft starts fresh', () {
+      expect(decide(restored: false), RestoredDraftAction.startFresh);
+    });
+
+    test('a draft for the next session is kept as is', () {
+      expect(decide(), RestoredDraftAction.keepAsIs);
+    });
+
+    test('an unfinished draft with a stale number keeps its content', () {
+      // Regression: this case used to delete the draft and every reflection
+      // written in it.
+      expect(decide(nextSession: 6), RestoredDraftAction.keepRenumbered);
+    });
+
+    test('a draft whose final save already happened is discarded', () {
+      expect(
+        decide(finalCompleted: true, nextSession: 6),
+        RestoredDraftAction.startFresh,
+      );
+    });
+  });
 }
