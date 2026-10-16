@@ -101,13 +101,39 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
     currentLifeDiaryDraft.q7FinalCompleted = true;
     saveQ7Draft();
     try {
-      final entry = lifeDiaryEntryFactory.fromUiDraft(
+      var entry = lifeDiaryEntryFactory.fromUiDraft(
         widget.diaryDate,
         currentLifeDiaryDraft.toJson(),
         completed: true,
         seasonNumber: currentLifeDiaryDraft.seasonNumber,
         sessionNumber: currentLifeDiaryDraft.sessionNumber,
       );
+      // The session number was assigned when this draft was started. Another
+      // diary (another date's draft, or a deleted entry) may hold it by now, so
+      // confirm it against the stored entries and move to the next free number
+      // rather than colliding with or replacing that diary.
+      final storedEntries = await lifeDiaryRepository.findByOwner(
+        lifeDiaryEntryFactory.ownerUserId,
+      );
+      final session = resolveCompletionSession(
+        entries: storedEntries,
+        entryId: entry.entryId,
+        draftSeason: entry.seasonNumber,
+        draftSession: entry.sessionNumber,
+      );
+      if (session.seasonNumber != entry.seasonNumber ||
+          session.sessionNumber != entry.sessionNumber) {
+        currentLifeDiaryDraft
+          ..seasonNumber = session.seasonNumber
+          ..sessionNumber = session.sessionNumber;
+        entry = lifeDiaryEntryFactory.fromUiDraft(
+          widget.diaryDate,
+          currentLifeDiaryDraft.toJson(),
+          completed: true,
+          seasonNumber: session.seasonNumber,
+          sessionNumber: session.sessionNumber,
+        );
+      }
       await lifeDiaryRepository.save(entry);
       lifeDiaryLogger.info('life_diary.completed_entry_saved', {
         'entry_id': entry.entryId,

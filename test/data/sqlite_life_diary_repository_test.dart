@@ -88,18 +88,64 @@ void main() {
     },
   );
 
-  test('same owner season and session updates the existing entry', () async {
-    await repository.save(buildEntry(entryId: 'legacy-entry-id'));
+  test(
+    'a different diary with the same season and session never replaces it',
+    () async {
+      // Regression: LD-FL-023 matched rows by (owner, season, session) and
+      // UPDATEd them, so completing another date's draft silently replaced an
+      // already completed diary. Numbering is resolved before saving
+      // (resolveCompletionSession); the repository must refuse, not overwrite.
+      await repository.save(
+        buildEntry(
+          entryId: 'completed-first',
+          q1Narrative: '먼저 완성한 일기',
+          status: LifeDiaryEntryStatus.completed,
+        ),
+      );
+
+      await expectLater(
+        repository.save(
+          buildEntry(
+            entryId: 'other-date-draft',
+            q1Narrative: '다른 날짜 일기',
+            status: LifeDiaryEntryStatus.completed,
+          ),
+        ),
+        throwsA(isA<DatabaseException>()),
+      );
+
+      final rows = await database.query('life_diary_entry');
+      final kept = await repository.findById('completed-first');
+      expect(rows, hasLength(1));
+      expect(kept!.questions.q1.narrative, '먼저 완성한 일기');
+      expect(await repository.findById('other-date-draft'), isNull);
+    },
+  );
+
+  test('a deleted diary keeps its row and stays restorable', () async {
     await repository.save(
-      buildEntry(entryId: 'new-generated-id', q1Narrative: '같은 회차 수정'),
+      buildEntry(
+        entryId: 'deleted-diary',
+        q1Narrative: '삭제할 일기',
+        status: LifeDiaryEntryStatus.completed,
+      ),
+    );
+    await repository.tombstone('deleted-diary');
+
+    await expectLater(
+      repository.save(
+        buildEntry(
+          entryId: 'new-diary-same-number',
+          status: LifeDiaryEntryStatus.completed,
+        ),
+      ),
+      throwsA(isA<DatabaseException>()),
     );
 
-    final rows = await database.query('life_diary_entry');
-    final answers = await repository.findById('legacy-entry-id');
-
-    expect(rows, hasLength(1));
-    expect(rows.single['entry_id'], 'legacy-entry-id');
-    expect(answers!.questions.q1.narrative, '같은 회차 수정');
+    await repository.restore('deleted-diary');
+    final restored = await repository.findById('deleted-diary');
+    expect(restored!.status, LifeDiaryEntryStatus.completed);
+    expect(restored.questions.q1.narrative, '삭제할 일기');
   });
 
   test('LD-015 tombstones entry and emits no raw narrative', () async {

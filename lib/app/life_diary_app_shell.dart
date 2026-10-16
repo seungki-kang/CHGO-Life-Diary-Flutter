@@ -100,6 +100,9 @@ Future<void> resumeLifeDiaryDraft(
   int questionNumber,
 ) async {
   currentLifeDiaryDraft.loadJson(record.date, record.payload);
+  // Completing a diary turns persistence off until a new draft begins. Without
+  // this, a draft resumed later in the same app run was never saved again.
+  _draftLifecycle.beginDraft();
   lifeDiaryLogger.info('life_diary.draft_resumed', {
     'question_id': 'JL-LD-Q${questionNumber.toString().padLeft(2, '0')}',
     'operation': 'LOAD',
@@ -595,21 +598,29 @@ class _LifeDiaryDatePageState extends State<LifeDiaryDatePage> {
                     final restored = forceFresh
                         ? false
                         : await restoreLifeDiaryDraft(selectedDate);
-                    final restoredMatchesNextSession =
-                        restored &&
-                        _draftLifecycle.matchesNextSession(
-                          draftSeason: currentLifeDiaryDraft.seasonNumber,
-                          draftSession: currentLifeDiaryDraft.sessionNumber,
-                          nextSeason: _progress.seasonNumber,
-                          nextSession: _progress.sessionNumber,
+                    final action = _draftLifecycle.restoredDraftAction(
+                      restored: restored,
+                      finalCompleted: currentLifeDiaryDraft.q7FinalCompleted,
+                      draftSeason: currentLifeDiaryDraft.seasonNumber,
+                      draftSession: currentLifeDiaryDraft.sessionNumber,
+                      nextSeason: _progress.seasonNumber,
+                      nextSession: _progress.sessionNumber,
+                    );
+                    switch (action) {
+                      case RestoredDraftAction.startFresh:
+                        await lifeDiaryDraftStore.delete(selectedDate);
+                        currentLifeDiaryDraft.reset(
+                          selectedDate,
+                          season: _progress.seasonNumber,
+                          session: _progress.sessionNumber,
                         );
-                    if (forceFresh || !restoredMatchesNextSession) {
-                      await lifeDiaryDraftStore.delete(selectedDate);
-                      currentLifeDiaryDraft.reset(
-                        selectedDate,
-                        season: _progress.seasonNumber,
-                        session: _progress.sessionNumber,
-                      );
+                      case RestoredDraftAction.keepRenumbered:
+                        // Keep the written reflections; only the number moves.
+                        currentLifeDiaryDraft
+                          ..seasonNumber = _progress.seasonNumber
+                          ..sessionNumber = _progress.sessionNumber;
+                      case RestoredDraftAction.keepAsIs:
+                        break;
                     }
                     _forceFreshDiaryDate = null;
                     _draftLifecycle.beginDraft();

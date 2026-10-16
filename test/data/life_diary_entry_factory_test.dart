@@ -38,6 +38,52 @@ void main() {
     expect(entry.questions.q7.actions, ['act', 'reason']);
   });
 
+  test('stores Q3 text from the saved realm records', () {
+    // Regression: the Q3 screen moves each record into q3_enjoyment_records and
+    // clears q3_event/q3_declaration, so completed entries had an empty Q3.
+    final entry = factory.fromUiDraft(DateTime(2026, 10, 6), {
+      'q3_selected_realms': ['내 안', '공동체·관계 안'],
+      'q3_enjoyment_records': [
+        {
+          'realm': '내 안',
+          'event': '아침 묵상 중 평안을 발견',
+          'discovery': '',
+          'declaration': '나는 평안입니다라고 선포',
+          'enjoyment': '',
+        },
+        {
+          'realm': '공동체·관계 안',
+          'event': '소그룹에서 서로 섬김',
+          'discovery': '',
+          'declaration': '감사로 고백',
+          'enjoyment': '',
+        },
+      ],
+      'q3_event': '',
+      'q3_declaration': '',
+    }, completed: true);
+
+    expect(
+      entry.questions.q3.narrative,
+      '[내 안] 아침 묵상 중 평안을 발견\n\n[공동체·관계 안] 소그룹에서 서로 섬김',
+    );
+    expect(
+      entry.questions.q3.declaration,
+      '[내 안] 나는 평안입니다라고 선포\n\n[공동체·관계 안] 감사로 고백',
+    );
+  });
+
+  test('older Q3 drafts without records still use the flat fields', () {
+    final entry = factory.fromUiDraft(DateTime(2026, 10, 6), {
+      'q3_event': 'event',
+      'q3_discovery': 'discovery',
+      'q3_declaration': 'declaration',
+    }, completed: true);
+
+    expect(entry.questions.q3.narrative, 'event\n\ndiscovery');
+    expect(entry.questions.q3.declaration, 'declaration');
+  });
+
   test('uses safe empty canonical payloads for unanswered fields', () {
     final entry = factory.fromUiDraft(
       DateTime(2026, 10, 7),

@@ -20,44 +20,32 @@ class SqliteLifeDiaryRepository implements LifeDiaryRepository {
       final existing = await transaction.query(
         'life_diary_entry',
         columns: const ['entry_id', 'status'],
-        where: '''
-entry_id = ? OR (
-  owner_user_id = ? AND season_number = ? AND session_number = ?
-)
-''',
-        whereArgs: [
-          entry.entryId,
-          entry.ownerUserId,
-          entry.seasonNumber,
-          entry.sessionNumber,
-        ],
+        where: 'entry_id = ?',
+        whereArgs: [entry.entryId],
         limit: 1,
       );
-      final effectiveEntryId = existing.isEmpty
-          ? entry.entryId
-          : existing.first['entry_id'] as String;
       final previousStatus = existing.isEmpty
           ? null
           : existing.first['status'] as String;
 
       if (existing.isEmpty) {
         await transaction.insert('life_diary_entry', {
-          ..._entryRow(entry, entryId: effectiveEntryId),
+          ..._entryRow(entry),
           'created_at': now,
           'updated_at': now,
           'completed_at': _completedAt(entry, now),
         });
-        await _appendEvent(transaction, effectiveEntryId, 'CREATED', now);
+        await _appendEvent(transaction, entry.entryId, 'CREATED', now);
       } else {
         await transaction.update(
           'life_diary_entry',
           {
-            ..._entryRow(entry, entryId: effectiveEntryId),
+            ..._entryRow(entry),
             'updated_at': now,
             'completed_at': _completedAt(entry, now),
           },
           where: 'entry_id = ?',
-          whereArgs: [effectiveEntryId],
+          whereArgs: [entry.entryId],
         );
       }
 
@@ -73,7 +61,7 @@ WHERE entry_id = ? AND question_id = ?
 ORDER BY revision_number DESC
 LIMIT 1
 ''',
-          [effectiveEntryId, questionId],
+          [entry.entryId, questionId],
         );
         if (latest.isNotEmpty && latest.first['payload_json'] == payloadJson) {
           continue;
@@ -83,7 +71,7 @@ LIMIT 1
             ? 1
             : (latest.first['revision_number'] as int) + 1;
         await transaction.insert('life_diary_answer', {
-          'entry_id': effectiveEntryId,
+          'entry_id': entry.entryId,
           'question_id': questionId,
           'payload_json': payloadJson,
           'privacy_class': 'PRIVATE_RAW',
@@ -94,13 +82,13 @@ LIMIT 1
       }
 
       if (existing.isNotEmpty && changed) {
-        await _appendEvent(transaction, effectiveEntryId, 'AUTOSAVED', now);
+        await _appendEvent(transaction, entry.entryId, 'AUTOSAVED', now);
       }
       if (existing.isNotEmpty) {
         final nextStatus = entry.status.wireValue;
         if (previousStatus != nextStatus &&
             (nextStatus == 'REOPENED' || nextStatus == 'COMPLETED')) {
-          await _appendEvent(transaction, effectiveEntryId, nextStatus, now);
+          await _appendEvent(transaction, entry.entryId, nextStatus, now);
         }
       }
     });
@@ -168,11 +156,8 @@ LIMIT 1
   @override
   Future<void> close() => database.close();
 
-  Map<String, Object?> _entryRow(
-    LifeDiaryEntry entry, {
-    required String entryId,
-  }) => {
-    'entry_id': entryId,
+  Map<String, Object?> _entryRow(LifeDiaryEntry entry) => {
+    'entry_id': entry.entryId,
     'owner_user_id': entry.ownerUserId,
     'season_number': entry.seasonNumber,
     'session_number': entry.sessionNumber,
