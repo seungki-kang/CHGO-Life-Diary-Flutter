@@ -1,0 +1,33 @@
+{
+  "contract_id": "JL-LD-FLUTTER-MAPPING",
+  "contract_version": "1.1.0",
+  "runtime_schema": "https://jesuslife.one/schemas/life-diary-runtime/1.0.0",
+  "storage_migration": "lib/data/life_diary_database.dart",
+  "entry_table": "life_diary_entry",
+  "answer_table": "life_diary_answer",
+  "revision_table": "life_diary_revision_event",
+  "consent_table": "life_diary_consent_grant",
+  "question_mapping": {
+    "q1": "JL-LD-Q01",
+    "q2": "JL-LD-Q02",
+    "q3": "JL-LD-Q03",
+    "q4": "JL-LD-Q04",
+    "q5": "JL-LD-Q05",
+    "q6": "JL-LD-Q06",
+    "q7": "JL-LD-Q07"
+  },
+  "canonical_confession_id": "JL-LD-Q02-CONFESSION",
+  "canonical_confession_ko": "예수님과 함께 십자가에 못 박혀 죽었습니다",
+  "privacy_defaults": {
+    "narrative": "PRIVATE_RAW",
+    "controlled_selections": "PRIVATE_STRUCTURED"
+  },
+  "analytics_excludes_raw_text_by_default": true,
+  "season_size": 50,
+  "storage_authority": "application",
+  "legacy_storage_contract": "contracts/life-diary/legacy/V001__life_diary_sqlite_foundation.sql",
+  "canonical_register": {
+    "path": "contracts/canonical/JESUSLIFE_CANONICAL_OBJECT_REGISTER_1.0.csv",
+    "pin": "contracts/canonical/CANONICAL_PIN.json"
+  }
+}

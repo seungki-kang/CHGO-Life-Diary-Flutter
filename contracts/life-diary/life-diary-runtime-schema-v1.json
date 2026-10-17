@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jesuslife.one/schemas/life-diary-runtime/1.0.0",
+  "title": "Life Diary Runtime Entry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["entry_id", "owner_user_id", "season_number", "session_number", "entry_date", "status", "schema_version", "canonical_version", "questions"],
+  "properties": {
+    "entry_id": {"type": "string", "minLength": 1},
+    "owner_user_id": {"type": "string", "minLength": 1},
+    "season_number": {"type": "integer", "minimum": 1},
+    "session_number": {"type": "integer", "minimum": 1, "maximum": 50},
+    "entry_date": {"type": "string", "format": "date"},
+    "status": {"enum": ["DRAFT", "COMPLETED", "REOPENED", "DELETED"]},
+    "schema_version": {"const": "1.0.0"},
+    "canonical_version": {"type": "string", "minLength": 1},
+    "questions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["q1", "q2", "q3", "q4", "q5", "q6", "q7"],
+      "properties": {
+        "q1": {"$ref": "#/$defs/q1"},
+        "q2": {"$ref": "#/$defs/q2"},
+        "q3": {"$ref": "#/$defs/q3"},
+        "q4": {"$ref": "#/$defs/q4"},
+        "q5": {"$ref": "#/$defs/q5"},
+        "q6": {"$ref": "#/$defs/q6"},
+        "q7": {"$ref": "#/$defs/q7"}
+      }
+    }
+  },
+  "$defs": {
+    "oldPersonIdList": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^JL-OLD-0[1-7]$"}},
+    "fruitIdList": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^JL-FRUIT-0[1-9]$"}},
+    "q1": {"type": "object", "required": ["narrative", "old_person_ids"], "properties": {"narrative": {"type": "string"}, "old_person_ids": {"$ref": "#/$defs/oldPersonIdList"}}, "additionalProperties": false},
+    "q2": {"type": "object", "required": ["confession", "explanation_version", "applied_old_person_ids"], "properties": {"confession": {"const": "예수님과 함께 십자가에 못 박혀 죽었습니다"}, "explanation_version": {"type": "string"}, "acknowledged_at": {"type": ["string", "null"], "format": "date-time"}, "applied_old_person_ids": {"$ref": "#/$defs/oldPersonIdList"}}, "additionalProperties": false},
+    "q3": {"type": "object", "required": ["contexts", "narrative", "fruit_ids"], "properties": {"contexts": {"type": "array", "uniqueItems": true, "items": {"enum": ["INNER", "COMMUNITY"]}}, "narrative": {"type": "string"}, "declaration": {"type": "string"}, "fruit_ids": {"$ref": "#/$defs/fruitIdList"}}, "additionalProperties": false},
+    "q4": {"type": "object", "required": ["narrative", "revisited_q1_q2"], "properties": {"narrative": {"type": "string"}, "revisited_q1_q2": {"type": "boolean"}}, "additionalProperties": false},
+    "q5": {"type": "object", "required": ["communion_type", "narrative"], "properties": {"communion_type": {"enum": ["ASKED", "WHISPER", "SCRIPTURE_INSIGHT", "NONE_WITH_THANKS"]}, "narrative": {"type": "string"}}, "additionalProperties": false},
+    "gratitude": {"type": "object", "required": ["what", "why"], "properties": {"who": {"type": "string"}, "what": {"type": "string", "minLength": 1}, "why": {"type": "string"}}, "additionalProperties": false},
+    "q6": {"type": "object", "required": ["items"], "properties": {"items": {"type": "array", "items": {"$ref": "#/$defs/gratitude"}}}, "additionalProperties": false},
+    "q7": {"type": "object", "required": ["actions"], "properties": {"actions": {"type": "array", "items": {"type": "string"}}}, "additionalProperties": false}
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "entry_id": "JL-LD-LOCAL-20261016-S001-N06",
+  "owner_user_id": "local-device-user",
+  "season_number": 1,
+  "session_number": 6,
+  "entry_date": "2026-10-16",
+  "status": "COMPLETED",
+  "schema_version": "1.0.0",
+  "canonical_version": "1.0.0",
+  "questions": {
+    "q1": {
+      "narrative": "회의 중 내 의견이 무시되었다고 느끼며 마음이 굳어졌다",
+      "old_person_ids": ["JL-OLD-04", "JL-OLD-06"]
+    },
+    "q2": {
+      "confession": "예수님과 함께 십자가에 못 박혀 죽었습니다",
+      "explanation_version": "1.0.0",
+      "acknowledged_at": "2026-10-16T12:00:00.000Z",
+      "applied_old_person_ids": ["JL-OLD-04", "JL-OLD-06"]
+    },
+    "q3": {
+      "contexts": ["INNER", "COMMUNITY"],
+      "narrative": "[내 안] 아침 묵상 중 평안을 발견\n\n[공동체·관계 안] 소그룹에서 서로 섬김",
+      "declaration": "[내 안] 나는 평안입니다라고 선포\n\n[공동체·관계 안] 감사로 고백",
+      "fruit_ids": ["JL-FRUIT-03", "JL-FRUIT-01"]
+    },
+    "q4": {
+      "narrative": "동료와의 대화\n\n하나님의 긍휼로 다시 바라봄",
+      "revisited_q1_q2": false
+    },
+    "q5": {
+      "communion_type": "ASKED",
+      "narrative": "일상 교제 기록\n\n말씀 교제 기록"
+    },
+    "q6": {
+      "items": [
+        {"who": "하나님", "what": "오늘을 주심", "why": ""},
+        {"who": "가족", "what": "함께해 줌", "why": ""},
+        {"who": "친구", "what": "격려해 줌", "why": ""}
+      ]
+    },
+    "q7": {
+      "actions": ["동료에게 먼저 인사하기", "관계 회복을 위해"]
+    }
+  }
+}
