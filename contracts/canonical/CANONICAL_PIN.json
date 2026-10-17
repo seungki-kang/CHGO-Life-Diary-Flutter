@@ -1,11 +1,11 @@
 {
   "register": "JESUSLIFE_CANONICAL_OBJECT_REGISTER",
   "register_version": "1.0",
-  "authority": "JesusLife Canonical governance; the original stays in CHGO-Platform",
-  "source_repository": "seungki-kang/CHGO-Platform",
+  "authority": "JesusLife Canonical governance; the register's home is the CHGO repository (being re-established from the owner's archive as of 2026-10-17)",
+  "source_repository": "seungki-kang/JesusLife-Church-OS (formerly CHGO-Platform; the register was removed there on 2026-10-17 and remains in history at this commit)",
   "source_path": "canonical/sources/JESUSLIFE_CANONICAL_OBJECT_REGISTER_1.0.csv",
   "source_commit": "f44e3a1",
   "sha256": "c383055a3ab844ffaf1cb6e1337f06692d9985aa655632965b2ff1c9491a82ee",
   "pinned_on": "2026-10-17",
-  "update_rule": "Replace this copy only from a newer register version in CHGO-Platform, update this pin, and re-run tools/contract/validate_life_diary_contract.py."
+  "update_rule": "Replace this copy only from a register version published in the CHGO repository, update this pin (repository, path, commit, sha256), and re-run tools/contract/validate_life_diary_contract.py."
 }

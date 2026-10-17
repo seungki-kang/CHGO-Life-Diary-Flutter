@@ -53,4 +53,4 @@ This is a technical requirement, not a policy statement. It is met only if nobod
   - **Operator access.** A governed break-glass procedure allows exceptional operator access (PDV-002, Storage Architecture).
   
   All three conflict with Section 1. Reuse the threat analysis, lifecycle, deletion, and export material, and replace the key model with device-held keys.
-- **Platform APIs.** The Vault and coach-sharing endpoints in CHGO-Platform's consolidated OpenAPI v2 belong to this service. They are extracted from Platform in a later change (ADR-LD01, Section 4).
+- **Earlier API design.** The Vault and coach-sharing endpoints in the consolidated OpenAPI v2 of `JesusLife-Church-OS` (formerly CHGO-Platform) belong to this service. They are removed from Church OS in its next API baseline (ADR-LD01, Section 4.4). The PDV-008 Vault test pack was removed from Church OS on 2026-10-17 and is available at commit `b64dd9a` there.

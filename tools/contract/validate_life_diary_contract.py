@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Validate the Life Diary contract against the application.
 
-Replaces CHGO-Platform's validate_jl_life_diary_foundation.py and
+Replaces CHGO-Platform's (now JesusLife-Church-OS) validate_jl_life_diary_foundation.py and
 validate_jl_life_diary_flutter_contract.py, which were retired when the contract
 moved to this repository (ADR-LD01, decision LD-D6). Under LD-P1 the application
 is the source of truth, so these checks compare the contract with the app code.
