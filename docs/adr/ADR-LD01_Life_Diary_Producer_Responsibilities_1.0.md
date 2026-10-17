@@ -2,10 +2,10 @@
 
 Status: **PROPOSED** — LD-D1, LD-D5, LD-D6, LD-D7 decided; LD-D2 to LD-D4 open  
 Date: 2026-10-17  
-Normative companion: [`CHGO-Platform/docs/adr/ADR-LD01_Life_Diary_Platform_Role_Separation_1.0.md`](https://github.com/seungki-kang/CHGO-Platform/blob/main/docs/adr/ADR-LD01_Life_Diary_Platform_Role_Separation_1.0.md)  
+Normative companion: [`ADR-LD01_Life_Diary_Platform_Role_Separation_1.0.md`](ADR-LD01_Life_Diary_Platform_Role_Separation_1.0.md) (in this repository since 2026-10-17)  
 Canonical/Governance meaning changes: none
 
-The roles, data boundary, legal constraints, options, and open decisions are defined once, in the Platform ADR. This document records what the Life Diary application must do as the producer. Where the two differ, the Platform ADR governs shared decisions. LD-P1 (Life Diary follows the application) governs the application's own data.
+The roles, data boundary, legal constraints, options, and open decisions are defined once, in the role-separation ADR. "Platform" there and here means the CHGO engine. This document records what the Life Diary application must do as the producer. Where the two differ, the Platform ADR governs shared decisions. LD-P1 (Life Diary follows the application) governs the application's own data.
 
 ## 1. What Life Diary owns
 

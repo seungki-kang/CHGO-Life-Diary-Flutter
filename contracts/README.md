@@ -1,6 +1,6 @@
 # Life Diary contracts
 
-Relocated from `CHGO-Platform` at commit `f44e3a1` on 2026-10-17 (ADR-LD01, decision LD-D6). Under LD-P1 the application is the source of truth for Life Diary, so the contract lives with the application.
+Relocated from `CHGO-Platform` (now `JesusLife-Church-OS`) at commit `f44e3a1` on 2026-10-17 (ADR-LD01, decision LD-D6). Under LD-P1 the application is the source of truth for Life Diary, so the contract lives with the application.
 
 | Path | What it is | Changes since relocation |
 | --- | --- | --- |
@@ -8,7 +8,7 @@ Relocated from `CHGO-Platform` at commit `f44e3a1` on 2026-10-17 (ADR-LD01, deci
 | `life-diary/life-diary-flutter-mapping-v1.json` | Question IDs, Q2 confession, privacy defaults, season size | 1.1.0: storage authority is `lib/data/life_diary_database.dart`; canonical register path and pin added |
 | `life-diary/legacy/V001__life_diary_sqlite_foundation.sql` | Original SQLite storage contract | None. Kept for history only; the application's database code is authoritative |
 | `life-diary/fixtures/app_completed_entry.json` | A completed entry in the exact shape the application stores | New |
-| `canonical/JESUSLIFE_CANONICAL_OBJECT_REGISTER_1.0.csv` | Copy of the Canonical register | None. The original stays in CHGO-Platform (LD-D7) |
+| `canonical/JESUSLIFE_CANONICAL_OBJECT_REGISTER_1.0.csv` | Copy of the Canonical register | None. Pinned at `f44e3a1`. The register's home is now the CHGO repository; re-pin from there once it is published (LD-D7) |
 | `canonical/CANONICAL_PIN.json` | Source commit and SHA-256 of the copy | New |
 
 Validate with:
