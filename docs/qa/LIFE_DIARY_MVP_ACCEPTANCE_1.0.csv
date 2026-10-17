@@ -1,0 +1,16 @@
+test_id,area,scenario,expected_result,priority,status
+LD-001,Canonical,Q2 Korean confession is rendered,Exact canonical confession is displayed with explanation,P0,DEFINED
+LD-002,Safety,Q2 explanation is opened,Text rejects self-condemnation emotional suppression and self-harm interpretations,P0,DEFINED
+LD-003,Flow,User moves freely among Q1-Q7,Drafts remain intact and latest saved state reopens,P0,DEFINED
+LD-004,Flow,Q4 triggers return to Q1-Q2,Revision event is appended and prior responses are preserved,P0,DEFINED
+LD-005,Season,Session 50 is completed,Next entry is season+1 session 1,P0,DEFINED
+LD-006,Storage,App closes with unsaved changes,User is prompted and can save without loss,P0,DEFINED
+LD-007,Privacy,Pastor or coach requests raw diary without grant,Access is denied,P0,DEFINED
+LD-008,Privacy,User shares a summary,Recipient scope purpose and expiry are recorded,P0,DEFINED
+LD-009,Analytics,Growth event is exported,Raw narrative is absent unless separately granted,P0,DEFINED
+LD-010,Q1,User selects duplicate old-person category,Only one canonical ID is stored,P1,DEFINED
+LD-011,Q2,Q1 has no category selected,All seven categories are offered for authored reflection,P1,DEFINED
+LD-012,Q3,No concrete kingdom experience is found,All nine fruits are offered as guided reflection,P1,DEFINED
+LD-013,Q6,Completion attempted with fewer than three gratitude items,Completion is blocked with gentle guidance,P1,DEFINED
+LD-014,Migration,Schema upgrades from 1.0.0,Existing IDs answers and history are preserved,P0,DEFINED
+LD-015,Deletion,User deletes an entry,Entry is tombstoned or securely removed per policy and event contains no raw text,P0,DEFINED

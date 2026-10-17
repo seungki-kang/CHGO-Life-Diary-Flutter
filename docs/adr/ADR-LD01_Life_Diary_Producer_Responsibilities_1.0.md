@@ -1,6 +1,6 @@
 # ADR-LD01 Life Diary Producer Responsibilities 1.0
 
-Status: **PROPOSED** — depends on open decisions LD-D1 to LD-D4  
+Status: **PROPOSED** — LD-D1, LD-D5, LD-D6, LD-D7 decided; LD-D2 to LD-D4 open  
 Date: 2026-10-17  
 Normative companion: [`CHGO-Platform/docs/adr/ADR-LD01_Life_Diary_Platform_Role_Separation_1.0.md`](https://github.com/seungki-kang/CHGO-Platform/blob/main/docs/adr/ADR-LD01_Life_Diary_Platform_Role_Separation_1.0.md)  
 Canonical/Governance meaning changes: none
@@ -12,9 +12,19 @@ The roles, data boundary, legal constraints, options, and open decisions are def
 - Raw diary text, selections, drafts, revisions, deletion and restore (`lib/data/life_diary_database.dart` is authoritative).
 - Consent records (`life_diary_consent_grant`) and the user's choice to send or not send signals.
 - The **export signal contract**: the only data that may leave the application for CHGO Platform.
-- Its runtime schema and storage structure. Platform copies of these move here (Platform ADR, Section 4).
+- Its runtime schema and storage structure. These moved here from Platform on 2026-10-17 (`contracts/`, LD-D6).
+- The **end-to-end encrypted backup service** and **user-granted coach sharing** (LD-D1, LD-D5). Requirements: `docs/backup-service/README.md`.
 
-Canonical IDs and wording (old persons, fruits, questions) remain under Canonical governance. The application pins a register version.
+Canonical IDs and wording (old persons, fruits, questions) remain under Canonical governance. The application keeps a pinned copy of the register (`contracts/canonical/`, LD-D7).
+
+### 1.1 Decisions recorded on 2026-10-17
+
+| ID | Decision | Consequence for the application |
+| --- | --- | --- |
+| LD-D1 | (b) Backup on a Life Diary-only server. Owner requirement: **no one can see a diary unless the user allows it** | End-to-end encryption with device-held keys. The server, operators, church, and CHGO cannot decrypt. The earlier Platform vault design (server-side KMS decryption, break-glass) does not meet this and is input only |
+| LD-D5 | Coach sharing is offered: the user grants, the coach reads and coaches | Per-share grant (coach, scope, purpose, expiry), encrypted to the coach on the device, revocable, with an access log visible to the user. Never reaches CHGO Platform |
+| LD-D6 | (b) Relocate the Life Diary contract and vault design here; Platform keeps "moved" notices | Done: `contracts/`, `docs/product/`, `docs/qa/`, `docs/privacy/`, `docs/backup-service/platform-era/`. Platform validators replaced by `tools/contract/validate_life_diary_contract.py` |
+| LD-D7 | (a) Keep a pinned copy of the Canonical register | Done: `contracts/canonical/` with `CANONICAL_PIN.json`; the validator fails if the copy changes without a new pin |
 
 ## 2. Current state (2026-10-17)
 
@@ -40,6 +50,8 @@ Canonical IDs and wording (old persons, fruits, questions) remain under Canonica
 4. **Use a per-community pseudonym.** The subject identifier comes from the LD-D4 community link and differs per community. It is never a device ID, account ID, phone number, or email.
 5. **Contract tests.** The export signal contract has tests in this repository that fail if a forbidden field appears. Platform runs a consumer-contract test against the same contract.
 6. **Offline first.** Writing and completing a diary never depends on the network or on Platform availability.
+
+Backup and coach sharing (LD-D1, LD-D5) are separate from signals and have their own obligations in `docs/backup-service/README.md`. Diary content sent to the backup server or to a coach is always end-to-end encrypted. It never flows to CHGO Platform.
 
 ## 4. Export signal contract — illustrative draft (non-normative)
 

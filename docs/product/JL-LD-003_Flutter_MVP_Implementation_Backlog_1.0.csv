@@ -1,0 +1,10 @@
+work_id,sequence,area,title,depends_on,acceptance_ids,priority,status
+LD-FL-001,1,Domain,Implement typed LifeDiaryEntry and Q1-Q7 payload models,JL-LD-001,"LD-001;LD-010;LD-011;LD-012",P0,READY
+LD-FL-002,2,Storage,Apply SQLite V001 and repository adapters,LD-FL-001,"LD-003;LD-006;LD-014;LD-015",P0,READY
+LD-FL-003,3,Flow,Connect free Q1-Q7 navigation to persistent draft,LD-FL-002,"LD-003;LD-006",P0,READY
+LD-FL-004,4,Autosave,Add debounce lifecycle save and exit protection,LD-FL-003,LD-006,P0,READY
+LD-FL-005,5,Completion,Implement completion validation and status transition,LD-FL-002,"LD-001;LD-002;LD-013",P0,READY
+LD-FL-006,6,Revision,Implement Q4 return and immutable revision events,LD-FL-003,"LD-004",P0,READY
+LD-FL-007,7,Season,Implement season and session calculation,LD-FL-005,LD-005,P0,READY
+LD-FL-008,8,Privacy,Enforce owner-only raw diary and consent boundary,LD-FL-002,"LD-007;LD-008;LD-009;LD-015",P0,READY
+LD-FL-009,9,QA,Run all acceptance tests on emulator and physical device,"LD-FL-004;LD-FL-005;LD-FL-006;LD-FL-007;LD-FL-008",LD-001..LD-015,P0,READY
