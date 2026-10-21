@@ -85,8 +85,7 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
       additionalIndex = 0;
       return;
     }
-    additionalIndex =
-        additionalIndex.clamp(0, additionalQueue.length - 1) as int;
+    additionalIndex = additionalIndex.clamp(0, additionalQueue.length - 1);
     if (stage == 5 && additionalConfessionController.text.trim().isEmpty) {
       // Stage 5 proves that the last canonical confession was completed.
       // Rebuild the fixed sentence when an older serialized draft omitted
