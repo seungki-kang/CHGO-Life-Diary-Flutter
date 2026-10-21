@@ -581,25 +581,28 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
         const SizedBox(height: 12),
         Text(q1Summary, style: const TextStyle(fontSize: 16, height: 1.5)),
         const SizedBox(height: 18),
-        RadioListTile<String>(
-          value: 'none',
+        RadioGroup<String>(
           groupValue: newDiscoveryChoice,
-          title: const Text('새롭게 발견한 옛사람이 없습니다.'),
           onChanged: (value) => setState(() => newDiscoveryChoice = value),
-        ),
-        RadioListTile<String>(
-          value: 'same',
-          groupValue: newDiscoveryChoice,
-          title: const Text('1번에서 발견한 옛사람과 같습니다.'),
-          subtitle: const Text('1·2번을 다시 기록하지 않습니다.'),
-          onChanged: (value) => setState(() => newDiscoveryChoice = value),
-        ),
-        RadioListTile<String>(
-          value: 'different',
-          groupValue: newDiscoveryChoice,
-          title: const Text('1번과 다른 옛사람을 새롭게 발견했습니다.'),
-          subtitle: const Text('추가 1·2번으로 처리할 수 있습니다.'),
-          onChanged: (value) => setState(() => newDiscoveryChoice = value),
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              RadioListTile<String>(
+                value: 'none',
+                title: Text('새롭게 발견한 옛사람이 없습니다.'),
+              ),
+              RadioListTile<String>(
+                value: 'same',
+                title: Text('1번에서 발견한 옛사람과 같습니다.'),
+                subtitle: Text('1·2번을 다시 기록하지 않습니다.'),
+              ),
+              RadioListTile<String>(
+                value: 'different',
+                title: Text('1번과 다른 옛사람을 새롭게 발견했습니다.'),
+                subtitle: Text('추가 1·2번으로 처리할 수 있습니다.'),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 24),
         SizedBox(
