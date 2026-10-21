@@ -96,7 +96,7 @@ class _LifeDiaryQuestion3PageState extends State<LifeDiaryQuestion3Page> {
         selectedRealms.add('내 안');
         realmIndex = 0;
       } else {
-        realmIndex = realmIndex.clamp(0, realmQueue.length - 1) as int;
+        realmIndex = realmIndex.clamp(0, realmQueue.length - 1);
       }
     }
 
@@ -112,7 +112,7 @@ class _LifeDiaryQuestion3PageState extends State<LifeDiaryQuestion3Page> {
         stage = 4;
         missingIndex = 0;
       } else {
-        missingIndex = missingIndex.clamp(0, missingFruits.length - 1) as int;
+        missingIndex = missingIndex.clamp(0, missingFruits.length - 1);
       }
     }
 
@@ -266,7 +266,7 @@ class _LifeDiaryQuestion3PageState extends State<LifeDiaryQuestion3Page> {
       saveQ3Draft();
       return;
     }
-    realmIndex = realmIndex.clamp(0, realmQueue.length - 1) as int;
+    realmIndex = realmIndex.clamp(0, realmQueue.length - 1);
     final record = <String, String>{
       'realm': realmQueue[realmIndex],
       'event': eventController.text.trim(),
@@ -340,7 +340,7 @@ class _LifeDiaryQuestion3PageState extends State<LifeDiaryQuestion3Page> {
       saveQ3Draft();
       return;
     }
-    missingIndex = missingIndex.clamp(0, missingFruits.length - 1) as int;
+    missingIndex = missingIndex.clamp(0, missingFruits.length - 1);
     final expected = identitySentence(missingFruits[missingIndex]);
     if (normalized(identityController.text) == normalized(expected)) {
       if (missingIndex < missingFruits.length - 1) {
