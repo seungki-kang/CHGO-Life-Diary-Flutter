@@ -229,10 +229,31 @@ class _LifeDiaryQuestion5PageState extends State<LifeDiaryQuestion5Page> {
           style: TextStyle(fontSize: 16, height: 1.5),
         ),
         const SizedBox(height: 12),
-        _selectionTile(value: 'daily', title: '일상에서 성령님과 나눈 교제(경험)를 기록합니다.'),
-        _selectionTile(value: 'word', title: '말씀을 읽다가 성령께서 깨닫게 하신 것을 기록합니다.'),
-        _selectionTile(value: 'both', title: '두 가지 모두 기록합니다.'),
-        _selectionTile(value: 'none', title: '오늘 5번에 구체적으로 기록할 것이 없습니다.'),
+        RadioGroup<String>(
+          groupValue: selection,
+          onChanged: (newValue) {
+            setState(() => selection = newValue);
+            saveQ5Draft();
+          },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _selectionTile(
+                value: 'daily',
+                title: '일상에서 성령님과 나눈 교제(경험)를 기록합니다.',
+              ),
+              _selectionTile(
+                value: 'word',
+                title: '말씀을 읽다가 성령께서 깨닫게 하신 것을 기록합니다.',
+              ),
+              _selectionTile(value: 'both', title: '두 가지 모두 기록합니다.'),
+              _selectionTile(
+                value: 'none',
+                title: '오늘 5번에 구체적으로 기록할 것이 없습니다.',
+              ),
+            ],
+          ),
+        ),
         const SizedBox(height: 24),
         SizedBox(
           height: 56,
@@ -252,12 +273,7 @@ class _LifeDiaryQuestion5PageState extends State<LifeDiaryQuestion5Page> {
     return RadioListTile<String>(
       contentPadding: EdgeInsets.zero,
       value: value,
-      groupValue: selection,
       title: Text(title),
-      onChanged: (newValue) {
-        setState(() => selection = newValue);
-        saveQ5Draft();
-      },
     );
   }
 

@@ -379,67 +379,62 @@ class _LifeDiaryReadyPageState extends State<LifeDiaryReadyPage> {
 
         const SizedBox(height: 24),
 
-        RadioListTile<String>(
-          value: '깨달아졌다',
+        RadioGroup<String>(
           groupValue: awareness,
-          title: const Text('깨달아졌다'),
           onChanged: (value) {
             setState(() {
               awareness = value;
             });
           },
-        ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const RadioListTile<String>(
+                value: '깨달아졌다',
+                title: Text('깨달아졌다'),
+              ),
 
-        RadioListTile<String>(
-          value: '어느 정도 깨달아졌다',
-          groupValue: awareness,
-          title: const Text('어느 정도 깨달아졌다'),
-          onChanged: (value) {
-            setState(() {
-              awareness = value;
-            });
-          },
-        ),
+              const RadioListTile<String>(
+                value: '어느 정도 깨달아졌다',
+                title: Text('어느 정도 깨달아졌다'),
+              ),
 
-        if (awareness == '어느 정도 깨달아졌다') ...[
-          const SizedBox(height: 8),
+              if (awareness == '어느 정도 깨달아졌다') ...[
+                const SizedBox(height: 8),
 
-          Text(
-            '현재 나의 인식 정도: '
-            '${awarenessPercent.round()}%',
-            textAlign: TextAlign.center,
+                Text(
+                  '현재 나의 인식 정도: '
+                  '${awarenessPercent.round()}%',
+                  textAlign: TextAlign.center,
+                ),
+
+                Slider(
+                  value: awarenessPercent,
+                  min: 0,
+                  max: 100,
+                  divisions: 100,
+                  label: '${awarenessPercent.round()}%',
+                  onChanged: (value) {
+                    setState(() {
+                      awarenessPercent = value;
+                    });
+                  },
+                ),
+
+                const Text(
+                  '이 숫자는 영적 성장 점수가 아니라 '
+                  '지금 이 순간 스스로 느끼는 인식 정도입니다.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                ),
+              ],
+
+              const RadioListTile<String>(
+                value: '아직 모르겠다',
+                title: Text('아직 모르겠다'),
+              ),
+            ],
           ),
-
-          Slider(
-            value: awarenessPercent,
-            min: 0,
-            max: 100,
-            divisions: 100,
-            label: '${awarenessPercent.round()}%',
-            onChanged: (value) {
-              setState(() {
-                awarenessPercent = value;
-              });
-            },
-          ),
-
-          const Text(
-            '이 숫자는 영적 성장 점수가 아니라 '
-            '지금 이 순간 스스로 느끼는 인식 정도입니다.',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 13, color: Colors.grey),
-          ),
-        ],
-
-        RadioListTile<String>(
-          value: '아직 모르겠다',
-          groupValue: awareness,
-          title: const Text('아직 모르겠다'),
-          onChanged: (value) {
-            setState(() {
-              awareness = value;
-            });
-          },
         ),
 
         const SizedBox(height: 24),
