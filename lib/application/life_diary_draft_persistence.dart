@@ -12,12 +12,10 @@ typedef DraftSave = Future<void> Function(
 /// for the queue to finish; it does not claim that persistence succeeded.
 class LifeDiaryDraftPersistence {
   LifeDiaryDraftPersistence({
-    required DraftSave save,
+    required this._save,
     Future<void> Function(Duration)? delay,
-    void Function(int attempt, Object error)? onRetry,
-  }) : _save = save,
-       _delay = delay ?? _defaultDelay,
-       _onRetry = onRetry;
+    this._onRetry,
+  }) : _delay = delay ?? _defaultDelay;
 
   final DraftSave _save;
   final Future<void> Function(Duration) _delay;
