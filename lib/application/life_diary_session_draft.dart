@@ -47,13 +47,9 @@ String characterDifferenceGuidance(String typedText, String expectedText) {
   final typedWrong = typed.substring(prefix, typedEnd);
   final expectedRight = expected.substring(prefix, expectedEnd);
   final typedExcerpt =
-      typed.substring(contextStart, prefix) +
-      '[${typedWrong.isEmpty ? '빠짐' : typedWrong}]' +
-      typed.substring(typedEnd, contextTypedEnd);
+      '${typed.substring(contextStart, prefix)}[${typedWrong.isEmpty ? '빠짐' : typedWrong}]${typed.substring(typedEnd, contextTypedEnd)}';
   final expectedExcerpt =
-      expected.substring(contextStart, prefix) +
-      '[${expectedRight.isEmpty ? '삭제' : expectedRight}]' +
-      expected.substring(expectedEnd, contextExpectedEnd);
+      '${expected.substring(contextStart, prefix)}[${expectedRight.isEmpty ? '삭제' : expectedRight}]${expected.substring(expectedEnd, contextExpectedEnd)}';
 
   return '글자 번호 대신 [ ] 안의 부분을 비교해 주세요.\n'
       '내가 쓴 문장: …$typedExcerpt…\n'

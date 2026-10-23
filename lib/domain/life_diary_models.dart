@@ -114,8 +114,9 @@ List<String> _stringList(Object? value, String fieldName) {
   if (value is! List) throw FormatException('$fieldName must be a list');
   return value
       .map((item) {
-        if (item is! String)
+        if (item is! String) {
           throw FormatException('$fieldName must contain strings');
+        }
         return item;
       })
       .toList(growable: false);
