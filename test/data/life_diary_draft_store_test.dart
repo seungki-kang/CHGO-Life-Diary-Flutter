@@ -1,3 +1,4 @@
+import 'package:chgo_life_diary/application/life_diary_draft_persistence.dart';
 import 'package:chgo_life_diary/data/life_diary_database.dart';
 import 'package:chgo_life_diary/data/life_diary_draft_store.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -44,6 +45,26 @@ void main() {
       'SELECT COUNT(*) FROM life_diary_ui_draft',
     );
     expect(rows.single.values.single, 1);
+  });
+
+  test('injected SQLite save restores the latest queued checkpoint', () async {
+    final date = DateTime(2026, 10, 23);
+    final persistence = LifeDiaryDraftPersistence(save: store.save);
+    final first = persistence.enqueue(date, {'q3_stage': 2});
+    final second = persistence.enqueue(date, {
+      'q3_stage': 4,
+      'q6_stage': 2,
+      'q6_gratitudes': [
+        {'person': '가족', 'what': '함께함'},
+        {'person': '친구', 'what': '도움'},
+        {'person': '이웃', 'what': '인사'},
+      ],
+    });
+    await Future.wait([first, second]);
+    final restored = await store.load(date);
+    expect(restored!['q3_stage'], 4);
+    expect(restored['q6_gratitudes'], hasLength(3));
+    expect(await store.listAll(), hasLength(1));
   });
 
   test('returns null when the selected date has no draft', () async {

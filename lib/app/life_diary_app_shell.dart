@@ -2,10 +2,20 @@ part of '../main.dart';
 
 final LifeDiarySessionDraft currentLifeDiaryDraft = LifeDiarySessionDraft();
 late final LifeDiaryDraftStore lifeDiaryDraftStore;
-late final SqliteLifeDiaryRepository lifeDiaryRepository;
+late final LifeDiaryRepository lifeDiaryRepository;
 final LifeDiaryEntryFactory lifeDiaryEntryFactory = LifeDiaryEntryFactory();
 final AppLogger lifeDiaryLogger = AppLogger();
-Future<void> _draftWrite = Future.value();
+final _draftPersistence = LifeDiaryDraftPersistence(
+  save: (date, payload) => lifeDiaryDraftStore.save(date, payload),
+  onRetry: (attempt, error) =>
+      lifeDiaryLogger.warn('life_diary.draft_save_retry', {
+        'operation': 'UPSERT',
+        'source': 'LOCAL_SQLITE',
+        'retry_count': attempt,
+        'error_code': error.runtimeType.toString(),
+      }),
+);
+Future<void> get _draftWrite => _draftPersistence.settled;
 final LifeDiaryDraftLifecycle _draftLifecycle = LifeDiaryDraftLifecycle();
 DateTime? _forceFreshDiaryDate;
 
@@ -21,9 +31,9 @@ void persistCurrentLifeDiaryDraft() {
   final date = currentLifeDiaryDraft.diaryDate;
   if (date == null) return;
   final payload = currentLifeDiaryDraft.toJson();
-  _draftWrite = _draftWrite
-      .then((_) async {
-        await _saveDraftWithRetry(date, payload);
+  _draftPersistence
+      .enqueue(date, payload)
+      .then((_) {
         lifeDiaryLogger.debug('life_diary.draft_saved', {
           'operation': 'UPSERT',
           'source': 'LOCAL_SQLITE',
@@ -36,28 +46,6 @@ void persistCurrentLifeDiaryDraft() {
           'error_code': error.runtimeType.toString(),
         });
       });
-}
-
-Future<void> _saveDraftWithRetry(
-  DateTime date,
-  Map<String, Object?> payload,
-) async {
-  const maximumAttempts = 3;
-  for (var attempt = 1; attempt <= maximumAttempts; attempt++) {
-    try {
-      await lifeDiaryDraftStore.save(date, payload);
-      return;
-    } catch (error) {
-      if (attempt == maximumAttempts) rethrow;
-      lifeDiaryLogger.warn('life_diary.draft_save_retry', {
-        'operation': 'UPSERT',
-        'source': 'LOCAL_SQLITE',
-        'retry_count': attempt,
-        'error_code': error.runtimeType.toString(),
-      });
-      await Future<void>.delayed(Duration(milliseconds: 50 * attempt));
-    }
-  }
 }
 
 Future<bool> restoreLifeDiaryDraft(DateTime date) async {

@@ -7,6 +7,8 @@ import 'application/life_diary_step_navigation.dart';
 import 'application/life_diary_progress.dart';
 import 'application/life_diary_draft_lifecycle.dart';
 import 'data/life_diary_database.dart';
+import 'data/life_diary_repository.dart';
+import 'application/life_diary_draft_persistence.dart';
 import 'data/life_diary_draft_store.dart';
 import 'data/life_diary_entry_factory.dart';
 import 'data/sqlite_life_diary_repository.dart';
