@@ -11,6 +11,11 @@ class LifeDiaryEntryFactory {
   final String canonicalVersion;
   final DateTime Function() _clock;
 
+  String entryIdFor(DateTime date, int seasonNumber, int sessionNumber) =>
+      'JL-LD-LOCAL-${_compactDate(date)}-'
+      'S${seasonNumber.toString().padLeft(3, '0')}-'
+      'N${sessionNumber.toString().padLeft(2, '0')}';
+
   LifeDiaryEntry fromUiDraft(
     DateTime date,
     Map<String, Object?> draft, {
@@ -45,10 +50,7 @@ class LifeDiaryEntryFactory {
     final q3Text = _q3Text(draft);
 
     return LifeDiaryEntry(
-      entryId:
-          'JL-LD-LOCAL-${_compactDate(normalizedDate)}-'
-          'S${seasonNumber.toString().padLeft(3, '0')}-'
-          'N${sessionNumber.toString().padLeft(2, '0')}',
+      entryId: entryIdFor(normalizedDate, seasonNumber, sessionNumber),
       ownerUserId: ownerUserId,
       seasonNumber: seasonNumber,
       sessionNumber: sessionNumber,

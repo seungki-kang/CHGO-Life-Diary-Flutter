@@ -47,12 +47,10 @@ void main() {
     final lifecycle = LifeDiaryDraftLifecycle();
     RestoredDraftAction decide({
       bool restored = true,
-      bool finalCompleted = false,
       int draftSession = 5,
       int nextSession = 5,
     }) => lifecycle.restoredDraftAction(
       restored: restored,
-      finalCompleted: finalCompleted,
       draftSeason: 1,
       draftSession: draftSession,
       nextSeason: 1,
@@ -71,13 +69,6 @@ void main() {
       // Regression: this case used to delete the draft and every reflection
       // written in it.
       expect(decide(nextSession: 6), RestoredDraftAction.keepRenumbered);
-    });
-
-    test('a draft whose final save already happened is discarded', () {
-      expect(
-        decide(finalCompleted: true, nextSession: 6),
-        RestoredDraftAction.startFresh,
-      );
     });
   });
 }

@@ -116,7 +116,10 @@ class _LifeDiaryDraftsPageState extends State<LifeDiaryDraftsPage> {
                     onPressed: () => _delete(draft),
                     icon: const Icon(Icons.delete_outline),
                   ),
-                  onTap: () => widget.onResume(context, draft, question),
+                  onTap: () async {
+                    await widget.onResume(context, draft, question);
+                    if (mounted) setState(_reload);
+                  },
                 ),
               );
             },

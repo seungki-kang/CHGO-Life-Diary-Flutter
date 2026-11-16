@@ -1,3 +1,4 @@
+import 'package:chgo_life_diary/data/life_diary_draft_store.dart';
 import 'package:chgo_life_diary/data/life_diary_database.dart';
 import 'package:chgo_life_diary/data/sqlite_life_diary_repository.dart';
 import 'package:chgo_life_diary/domain/life_diary_models.dart';
@@ -30,6 +31,30 @@ void main() {
   });
 
   tearDown(() => repository.close());
+
+  test('failed Q7 cleanup rolls back completion and keeps the draft', () async {
+    final entry = buildEntry(status: LifeDiaryEntryStatus.completed);
+    final date = entry.entryDate;
+    final store = LifeDiaryDraftStore(database);
+    final payload = <String, Object?>{'q7_action': 'synthetic checkpoint'};
+    await store.save(date, payload);
+    await database.execute("""
+      CREATE TRIGGER fail_cleanup BEFORE DELETE ON life_diary_ui_draft
+      BEGIN SELECT RAISE(ABORT, 'synthetic failure'); END;
+    """);
+    await expectLater(
+      repository.completeDraft(entry),
+      throwsA(isA<DatabaseException>()),
+    );
+    expect(await store.load(date), payload);
+    expect(await repository.findById(entry.entryId), isNull);
+    expect(await database.query('life_diary_answer'), isEmpty);
+
+    await database.execute('DROP TRIGGER fail_cleanup');
+    await repository.completeDraft(entry);
+    expect(await store.load(date), isNull);
+    expect(await repository.findByOwner(entry.ownerUserId), hasLength(1));
+  });
 
   test('V001 creates all Life Diary tables', () async {
     final rows = await database.rawQuery(

@@ -52,8 +52,8 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
     }
   }
 
-  void saveQ6Draft() {
-    if (!_draftLifecycle.shouldPersist) return;
+  Future<bool> saveQ6Draft() {
+    if (!_draftLifecycle.shouldPersist) return Future.value(true);
     _removeDuplicateGratitudes();
     final draft = currentLifeDiaryDraft;
     draft.q6Stage = stage;
@@ -67,7 +67,7 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
     draft.q6Why = '';
     draft.q6SituationType = situationType;
     draft.q6EditingIndex = editingIndex;
-    persistCurrentLifeDiaryDraft();
+    return persistCurrentLifeDiaryDraft();
   }
 
   String formatDate(DateTime date) =>
@@ -133,15 +133,20 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
       'type': situationType ?? '',
     };
     final index = editingIndex;
+    final key = _gratitudeKey(item);
+    final duplicateIndex = gratitudes.indexWhere(
+      (saved) => _gratitudeKey(saved) == key,
+    );
     if (index != null && index < gratitudes.length) {
+      if (duplicateIndex >= 0 && duplicateIndex != index) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('이미 같은 감사 기록이 있습니다. 내용을 수정해 주세요.')),
+        );
+        return;
+      }
       gratitudes[index] = item;
-    } else {
-      // Reopening Q6 can restore the last text fields. Never append the same
-      // saved gratitude again as a new record.
-      final duplicateIndex = gratitudes.indexWhere(
-        (saved) => _gratitudeKey(saved) == _gratitudeKey(item),
-      );
-      if (duplicateIndex < 0) gratitudes.add(item);
+    } else if (duplicateIndex < 0) {
+      gratitudes.add(item);
     }
 
     personController.clear();
@@ -266,7 +271,7 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final page = Scaffold(
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -323,6 +328,7 @@ class _LifeDiaryQuestion6PageState extends State<LifeDiaryQuestion6Page> {
         ),
       ),
     );
+    return _guardDraftBack(context, saveQ6Draft, page);
   }
 
   Widget _buildStage() {

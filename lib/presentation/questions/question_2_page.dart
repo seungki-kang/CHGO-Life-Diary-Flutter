@@ -65,15 +65,15 @@ class _LifeDiaryQuestion2PageState extends State<LifeDiaryQuestion2Page> {
     return '${date.year}년 ${date.month}월 ${date.day}일';
   }
 
-  void saveQ2Draft() {
-    if (!_draftLifecycle.shouldPersist) return;
+  Future<bool> saveQ2Draft() {
+    if (!_draftLifecycle.shouldPersist) return Future.value(true);
     currentLifeDiaryDraft.q2CurrentIndex = currentIndex;
     // A fixed sentence opened only for review must never turn an already
     // completed Q2 back into an in-progress answer.
     currentLifeDiaryDraft.q2PartialText = allRequiredConfessionsComplete
         ? ''
         : confessionController.text;
-    persistCurrentLifeDiaryDraft();
+    return persistCurrentLifeDiaryDraft();
   }
 
   Future<void> handleBack() async {
@@ -341,7 +341,7 @@ class _LifeDiaryQuestion2PageState extends State<LifeDiaryQuestion2Page> {
   @override
   Widget build(BuildContext context) {
     if (q2AllComplete) {
-      return Scaffold(
+      final page = Scaffold(
         appBar: AppBar(
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
@@ -435,8 +435,9 @@ class _LifeDiaryQuestion2PageState extends State<LifeDiaryQuestion2Page> {
           ),
         ),
       );
+      return _guardDraftBack(context, saveQ2Draft, page);
     }
-    return Scaffold(
+    final page = Scaffold(
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -608,6 +609,7 @@ class _LifeDiaryQuestion2PageState extends State<LifeDiaryQuestion2Page> {
         ),
       ),
     );
+    return _guardDraftBack(context, saveQ2Draft, page);
   }
 }
 

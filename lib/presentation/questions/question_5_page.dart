@@ -32,15 +32,15 @@ class _LifeDiaryQuestion5PageState extends State<LifeDiaryQuestion5Page> {
     noRecordController.text = draft.q5NoRecordDeclaration;
   }
 
-  void saveQ5Draft() {
-    if (!_draftLifecycle.shouldPersist) return;
+  Future<bool> saveQ5Draft() {
+    if (!_draftLifecycle.shouldPersist) return Future.value(true);
     final draft = currentLifeDiaryDraft;
     draft.q5Stage = stage;
     draft.q5Selection = selection;
     draft.q5DailyRecord = dailyController.text;
     draft.q5WordRecord = wordController.text;
     draft.q5NoRecordDeclaration = noRecordController.text;
-    persistCurrentLifeDiaryDraft();
+    return persistCurrentLifeDiaryDraft();
   }
 
   String formatDate(DateTime date) =>
@@ -124,7 +124,7 @@ class _LifeDiaryQuestion5PageState extends State<LifeDiaryQuestion5Page> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final page = Scaffold(
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -181,6 +181,7 @@ class _LifeDiaryQuestion5PageState extends State<LifeDiaryQuestion5Page> {
         ),
       ),
     );
+    return _guardDraftBack(context, saveQ5Draft, page);
   }
 
   Widget _buildStage() {
@@ -247,10 +248,7 @@ class _LifeDiaryQuestion5PageState extends State<LifeDiaryQuestion5Page> {
                 title: '말씀을 읽다가 성령께서 깨닫게 하신 것을 기록합니다.',
               ),
               _selectionTile(value: 'both', title: '두 가지 모두 기록합니다.'),
-              _selectionTile(
-                value: 'none',
-                title: '오늘 5번에 구체적으로 기록할 것이 없습니다.',
-              ),
+              _selectionTile(value: 'none', title: '오늘 5번에 구체적으로 기록할 것이 없습니다.'),
             ],
           ),
         ),

@@ -124,8 +124,8 @@ class _LifeDiaryQuestion3PageState extends State<LifeDiaryQuestion3Page> {
     }
   }
 
-  void saveQ3Draft() {
-    if (!_draftLifecycle.shouldPersist) return;
+  Future<bool> saveQ3Draft() {
+    if (!_draftLifecycle.shouldPersist) return Future.value(true);
     final draft = currentLifeDiaryDraft;
     draft.q3Stage = stage;
     draft.q3SelectedRealms
@@ -155,7 +155,7 @@ class _LifeDiaryQuestion3PageState extends State<LifeDiaryQuestion3Page> {
     draft.q3NoEnjoyment = noKingdomEnjoymentToday;
     draft.q3NoSpecificFruit = noSpecificFruit;
     draft.q3EditingRecordIndex = editingRecordIndex;
-    persistCurrentLifeDiaryDraft();
+    return persistCurrentLifeDiaryDraft();
   }
 
   String formatDate(DateTime date) {
@@ -402,6 +402,10 @@ class _LifeDiaryQuestion3PageState extends State<LifeDiaryQuestion3Page> {
                 trailing: const Icon(Icons.edit_outlined),
                 onTap: () async {
                   Navigator.pop(sheetContext);
+                  if (!await _saveBeforeNavigation(context, saveQ3Draft) ||
+                      !mounted) {
+                    return;
+                  }
                   await Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -444,7 +448,7 @@ class _LifeDiaryQuestion3PageState extends State<LifeDiaryQuestion3Page> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final page = Scaffold(
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -503,6 +507,7 @@ class _LifeDiaryQuestion3PageState extends State<LifeDiaryQuestion3Page> {
         ),
       ),
     );
+    return _guardDraftBack(context, saveQ3Draft, page);
   }
 
   Widget _buildStage() {

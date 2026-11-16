@@ -48,8 +48,8 @@ class _LifeDiaryReadyPageState extends State<LifeDiaryReadyPage> {
     step = currentLifeDiaryDraft.q1Step;
   }
 
-  void saveQ1Draft() {
-    if (!_draftLifecycle.shouldPersist) return;
+  Future<bool> saveQ1Draft() {
+    if (!_draftLifecycle.shouldPersist) return Future.value(true);
     final previousRoots = Set<String>.from(currentLifeDiaryDraft.q1OldSelves);
     final selectionChanged =
         previousRoots.length != selectedRoots.length ||
@@ -68,7 +68,7 @@ class _LifeDiaryReadyPageState extends State<LifeDiaryReadyPage> {
       currentLifeDiaryDraft.q2CurrentIndex = 0;
       currentLifeDiaryDraft.q2PartialText = '';
     }
-    persistCurrentLifeDiaryDraft();
+    return persistCurrentLifeDiaryDraft();
   }
 
   String formatDate(DateTime date) {
@@ -116,7 +116,7 @@ class _LifeDiaryReadyPageState extends State<LifeDiaryReadyPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final page = Scaffold(
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -183,6 +183,7 @@ class _LifeDiaryReadyPageState extends State<LifeDiaryReadyPage> {
         ),
       ),
     );
+    return _guardDraftBack(context, saveQ1Draft, page);
   }
 
   Widget _buildCurrentStep() {
@@ -389,10 +390,7 @@ class _LifeDiaryReadyPageState extends State<LifeDiaryReadyPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const RadioListTile<String>(
-                value: '깨달아졌다',
-                title: Text('깨달아졌다'),
-              ),
+              const RadioListTile<String>(value: '깨달아졌다', title: Text('깨달아졌다')),
 
               const RadioListTile<String>(
                 value: '어느 정도 깨달아졌다',
@@ -512,11 +510,10 @@ class _LifeDiaryReadyPageState extends State<LifeDiaryReadyPage> {
         SizedBox(
           height: 56,
           child: FilledButton(
-            onPressed: () {
+            onPressed: () async {
               currentLifeDiaryDraft.q1Completed = true;
-              saveQ1Draft();
               if (widget.editMode) {
-                Navigator.pop(context, true);
+                await confirmDraftExit(context, saveQ1Draft, result: true);
                 return;
               }
               goToNextLifeDiaryQuestion(
