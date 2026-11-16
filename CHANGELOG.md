@@ -2,6 +2,14 @@
 
 ## Unreleased — LD-FL-024
 
+- Date selection scrolls on compact screens so the start button stays reachable.
+
+- Q7: commit the completed entry and remove its UI draft in one SQLite
+  transaction. Preserve legacy flagged drafts without a matching final entry.
+- Draft navigation: keep the current screen and show a retry message when
+  the checkpoint cannot be saved.
+- Q6: reject duplicate edits while retaining the original gratitude and input.
+
 - SQLite: reverted the LD-FL-023 owner/season/session reconciliation. It turned a
   numbering collision into a silent UPDATE of another diary (a completed diary for
   another date, or a deleted, restorable one). The repository again matches only by

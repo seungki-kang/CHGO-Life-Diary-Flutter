@@ -65,11 +65,14 @@ class LifeDiaryDraftStore {
         .toList(growable: false);
   }
 
-  Future<void> delete(DateTime date) => database.delete(
-    'life_diary_ui_draft',
-    where: 'draft_date = ?',
-    whereArgs: [_dateOnly(date)],
-  );
+  Future<void> delete(DateTime date) => deleteIn(database, date);
+
+  static Future<void> deleteIn(DatabaseExecutor executor, DateTime date) =>
+      executor.delete(
+        'life_diary_ui_draft',
+        where: 'draft_date = ?',
+        whereArgs: [_dateOnly(date)],
+      );
 }
 
 String _dateOnly(DateTime value) =>

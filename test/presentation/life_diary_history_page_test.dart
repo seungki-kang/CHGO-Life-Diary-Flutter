@@ -136,6 +136,10 @@ void main() {
 }
 
 class _FakeRepository implements LifeDiaryRepository {
+  @override
+  Future<void> completeDraft(LifeDiaryEntry entry) =>
+      throw UnimplementedError();
+
   _FakeRepository(this.entries);
 
   final List<LifeDiaryEntry> entries;

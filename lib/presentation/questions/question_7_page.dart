@@ -28,15 +28,15 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
     coachingNoteController.text = draft.q7CoachingNote;
   }
 
-  void saveQ7Draft() {
-    if (_draftFinalized) return;
+  Future<bool> saveQ7Draft() {
+    if (_draftFinalized || _isCompleting) return Future.value(true);
     final draft = currentLifeDiaryDraft;
     draft.q7Stage = stage;
     draft.q7Action = actionController.text;
     draft.q7Reason = reasonController.text;
     draft.q7CoachingRequested = coachingRequested;
     draft.q7CoachingNote = coachingNoteController.text;
-    persistCurrentLifeDiaryDraft();
+    return persistCurrentLifeDiaryDraft();
   }
 
   bool get entryComplete =>
@@ -52,6 +52,7 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
   }
 
   Future<void> handleBack() async {
+    if (_isCompleting && !_draftFinalized) return;
     if (_draftFinalized) {
       Navigator.pop(context);
       return;
@@ -96,10 +97,8 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
         ],
       ),
     );
-    if (confirmed != true || !mounted) return;
+    if (confirmed != true || !mounted || _isCompleting) return;
     setState(() => _isCompleting = true);
-    currentLifeDiaryDraft.q7FinalCompleted = true;
-    saveQ7Draft();
     try {
       var entry = lifeDiaryEntryFactory.fromUiDraft(
         widget.diaryDate,
@@ -134,7 +133,13 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
           sessionNumber: session.sessionNumber,
         );
       }
-      await lifeDiaryRepository.save(entry);
+      await _draftPersistence.enqueue(
+        widget.diaryDate,
+        currentLifeDiaryDraft.toJson(),
+      );
+      await lifeDiaryRepository.completeDraft(entry);
+      _draftFinalized = true;
+      _draftLifecycle.markCompletedEntryClosing();
       lifeDiaryLogger.info('life_diary.completed_entry_saved', {
         'entry_id': entry.entryId,
         'status': entry.status.name.toUpperCase(),
@@ -147,36 +152,16 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
       });
       if (!mounted) return;
       setState(() => stage = 3);
-      saveQ7Draft();
-      try {
-        await _draftWrite;
-        await lifeDiaryDraftStore.delete(widget.diaryDate);
-        _draftFinalized = true;
-        _draftLifecycle.markCompletedEntryClosing();
-        lifeDiaryLogger.info('life_diary.completed_draft_removed', {
-          'entry_id': entry.entryId,
-          'operation': 'DELETE',
-          'source': 'LOCAL_SQLITE',
-        });
-      } catch (error) {
-        lifeDiaryLogger.warn('life_diary.completed_draft_cleanup_failed', {
-          'entry_id': entry.entryId,
-          'operation': 'DELETE',
-          'source': 'LOCAL_SQLITE',
-          'error_code': error.runtimeType.toString(),
-        });
-      }
     } catch (error) {
-      currentLifeDiaryDraft.q7FinalCompleted = false;
-      saveQ7Draft();
       lifeDiaryLogger.error('life_diary.completed_entry_save_failed', {
         'operation': 'UPSERT',
         'source': 'LOCAL_SQLITE',
         'error_code': error.runtimeType.toString(),
       });
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('최종 저장에 실패했습니다: $error')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('최종 저장에 실패했습니다. 다시 시도해 주세요.')),
+      );
     } finally {
       if (mounted && !_draftFinalized) {
         setState(() => _isCompleting = false);
@@ -242,7 +227,7 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final page = Scaffold(
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -253,12 +238,14 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
         actions: [
           IconButton(
             tooltip: '1~7번 문항 이동',
-            onPressed: () => showLifeDiaryQuestionNavigator(
-              context,
-              widget.diaryDate,
-              7,
-              saveCurrent: saveQ7Draft,
-            ),
+            onPressed: _isCompleting
+                ? null
+                : () => showLifeDiaryQuestionNavigator(
+                    context,
+                    widget.diaryDate,
+                    7,
+                    saveCurrent: saveQ7Draft,
+                  ),
             icon: const Icon(Icons.grid_view_outlined),
           ),
         ],
@@ -298,6 +285,13 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
           ),
         ),
       ),
+    );
+    return PopScope(
+      canPop: _draftFinalized,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && !_isCompleting) confirmDraftExit(context, saveQ7Draft);
+      },
+      child: page,
     );
   }
 
@@ -356,7 +350,7 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
       SizedBox(
         height: 58,
         child: FilledButton(
-          onPressed: () => changeStage(1),
+          onPressed: _isCompleting ? null : () => changeStage(1),
           child: const Text('묵상하고 기록하기', style: TextStyle(fontSize: 18)),
         ),
       ),
@@ -470,18 +464,20 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
       ],
       const SizedBox(height: 18),
       OutlinedButton.icon(
-        onPressed: () => changeStage(1),
+        onPressed: _isCompleting ? null : () => changeStage(1),
         icon: const Icon(Icons.edit_outlined),
         label: const Text('7번 기록 수정하기'),
       ),
       const SizedBox(height: 12),
       OutlinedButton.icon(
-        onPressed: () => showLifeDiaryQuestionNavigator(
-          context,
-          widget.diaryDate,
-          7,
-          saveCurrent: saveQ7Draft,
-        ),
+        onPressed: _isCompleting
+            ? null
+            : () => showLifeDiaryQuestionNavigator(
+                context,
+                widget.diaryDate,
+                7,
+                saveCurrent: saveQ7Draft,
+              ),
         icon: const Icon(Icons.grid_view_outlined),
         label: const Text('1~7번 기록 다시 확인하기'),
       ),
@@ -524,7 +520,6 @@ class _LifeDiaryQuestion7PageState extends State<LifeDiaryQuestion7Page> {
         height: 58,
         child: FilledButton.icon(
           onPressed: () {
-            _forceFreshDiaryDate = widget.diaryDate;
             currentLifeDiaryDraft.reset(widget.diaryDate);
             Navigator.of(context).popUntil((route) => route.isFirst);
           },

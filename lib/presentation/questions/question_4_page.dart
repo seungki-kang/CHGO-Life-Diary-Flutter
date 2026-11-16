@@ -96,8 +96,8 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
     }
   }
 
-  void saveQ4Draft() {
-    if (!_draftLifecycle.shouldPersist) return;
+  Future<bool> saveQ4Draft() {
+    if (!_draftLifecycle.shouldPersist) return Future.value(true);
     final draft = currentLifeDiaryDraft;
     draft.q4Stage = stage;
     draft.q4Person = personController.text;
@@ -124,7 +124,7 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
     draft.q4AdditionalCompletedOldSelves
       ..clear()
       ..addAll(additionalCompletedOldSelves);
-    persistCurrentLifeDiaryDraft();
+    return persistCurrentLifeDiaryDraft();
   }
 
   String formatDate(DateTime date) =>
@@ -348,6 +348,10 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
                 trailing: const Icon(Icons.edit_outlined),
                 onTap: () async {
                   Navigator.pop(sheetContext);
+                  if (!await _saveBeforeNavigation(context, saveQ4Draft) ||
+                      !mounted) {
+                    return;
+                  }
                   await Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -401,7 +405,7 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final page = Scaffold(
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -458,6 +462,7 @@ class _LifeDiaryQuestion4PageState extends State<LifeDiaryQuestion4Page> {
         ),
       ),
     );
+    return _guardDraftBack(context, saveQ4Draft, page);
   }
 
   Widget _buildStage() {

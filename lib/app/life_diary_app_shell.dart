@@ -17,35 +17,32 @@ final _draftPersistence = LifeDiaryDraftPersistence(
 );
 Future<void> get _draftWrite => _draftPersistence.settled;
 final LifeDiaryDraftLifecycle _draftLifecycle = LifeDiaryDraftLifecycle();
-DateTime? _forceFreshDiaryDate;
+typedef LifeDiaryDraftSaveCallback = Future<bool> Function();
 
-bool _sameDiaryDate(DateTime? left, DateTime right) {
-  return left != null &&
-      left.year == right.year &&
-      left.month == right.month &&
-      left.day == right.day;
+Future<bool>? _latestDraftSave;
+
+Future<bool> persistCurrentLifeDiaryDraft() {
+  final date = currentLifeDiaryDraft.diaryDate;
+  if (!_draftLifecycle.shouldPersist || date == null) return Future.value(true);
+  return _latestDraftSave = _persistDraft(date, currentLifeDiaryDraft.toJson());
 }
 
-void persistCurrentLifeDiaryDraft() {
-  if (!_draftLifecycle.shouldPersist) return;
-  final date = currentLifeDiaryDraft.diaryDate;
-  if (date == null) return;
-  final payload = currentLifeDiaryDraft.toJson();
-  _draftPersistence
-      .enqueue(date, payload)
-      .then((_) {
-        lifeDiaryLogger.debug('life_diary.draft_saved', {
-          'operation': 'UPSERT',
-          'source': 'LOCAL_SQLITE',
-        });
-      })
-      .catchError((Object error, StackTrace stackTrace) {
-        lifeDiaryLogger.error('life_diary.draft_save_failed', {
-          'operation': 'UPSERT',
-          'source': 'LOCAL_SQLITE',
-          'error_code': error.runtimeType.toString(),
-        });
-      });
+Future<bool> _persistDraft(DateTime date, Map<String, Object?> payload) async {
+  try {
+    await _draftPersistence.enqueue(date, payload);
+    lifeDiaryLogger.debug('life_diary.draft_saved', {
+      'operation': 'UPSERT',
+      'source': 'LOCAL_SQLITE',
+    });
+    return true;
+  } catch (error) {
+    lifeDiaryLogger.error('life_diary.draft_save_failed', {
+      'operation': 'UPSERT',
+      'source': 'LOCAL_SQLITE',
+      'error_code': error.runtimeType.toString(),
+    });
+    return false;
+  }
 }
 
 Future<bool> restoreLifeDiaryDraft(DateTime date) async {
@@ -58,11 +55,33 @@ Future<bool> restoreLifeDiaryDraft(DateTime date) async {
     });
     return false;
   }
-  currentLifeDiaryDraft.loadJson(date, payload);
+  if (!await _loadRecoverableDraft(date, payload)) return false;
   lifeDiaryLogger.info('life_diary.draft_restored', {
     'operation': 'LOAD',
     'source': 'LOCAL_SQLITE',
   });
+  return true;
+}
+
+// Older releases marked the draft before the final entry committed.
+Future<bool> _loadRecoverableDraft(
+  DateTime date,
+  Map<String, Object?> payload,
+) async {
+  final draft = currentLifeDiaryDraft..loadJson(date, payload);
+  if (!draft.q7FinalCompleted) return true;
+  final entryId = lifeDiaryEntryFactory.entryIdFor(
+    date,
+    draft.seasonNumber,
+    draft.sessionNumber,
+  );
+  final entry = await lifeDiaryRepository.findById(entryId);
+  if (entry != null && entry.status != LifeDiaryEntryStatus.draft) {
+    await lifeDiaryDraftStore.delete(date);
+    return false;
+  }
+  draft.q7FinalCompleted = false;
+  if (draft.q7Stage == 3) draft.q7Stage = 2;
   return true;
 }
 
@@ -87,7 +106,7 @@ Future<void> resumeLifeDiaryDraft(
   LifeDiaryDraftRecord record,
   int questionNumber,
 ) async {
-  currentLifeDiaryDraft.loadJson(record.date, record.payload);
+  if (!await restoreLifeDiaryDraft(record.date) || !context.mounted) return;
   // Completing a diary turns persistence off until a new draft begins. Without
   // this, a draft resumed later in the same app run was never saved again.
   _draftLifecycle.beginDraft();
@@ -104,15 +123,62 @@ Future<void> resumeLifeDiaryDraft(
   );
 }
 
+final _pendingDraftNavigation = <BuildContext>{};
+
+Future<bool> _saveBeforeNavigation(
+  BuildContext context,
+  LifeDiaryDraftSaveCallback saveCurrent,
+) async {
+  if (!_pendingDraftNavigation.add(context)) return false;
+  try {
+    final previousSave = _latestDraftSave;
+    var pending = saveCurrent();
+    var saved = await pending;
+    // An onChanged autosave can queue newer input while the route waits.
+    while (saved) {
+      final latest = _latestDraftSave;
+      if (latest == null ||
+          identical(latest, previousSave) ||
+          identical(latest, pending)) {
+        break;
+      }
+      pending = latest;
+      saved = await pending;
+    }
+    if (!context.mounted || ModalRoute.of(context)?.isCurrent == false) {
+      return false;
+    }
+    if (!saved) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('임시저장에 실패했습니다. 같은 버튼을 눌러 다시 시도해 주세요.')),
+      );
+    }
+    return saved;
+  } finally {
+    _pendingDraftNavigation.remove(context);
+  }
+}
+
+Widget _guardDraftBack(
+  BuildContext context,
+  LifeDiaryDraftSaveCallback saveCurrent,
+  Widget child,
+) => PopScope(
+  canPop: false,
+  onPopInvokedWithResult: (didPop, _) {
+    if (!didPop) confirmDraftExit(context, saveCurrent);
+  },
+  child: child,
+);
+
 Future<void> confirmDraftExit(
   BuildContext context,
-  VoidCallback saveCurrent,
-) async {
-  // Every back action is a safe checkpoint. Do not make the user choose
-  // between leaving and preserving already written spiritual reflections.
-  saveCurrent();
-  await _draftWrite;
-  if (context.mounted) Navigator.pop(context);
+  LifeDiaryDraftSaveCallback saveCurrent, {
+  Object? result,
+}) async {
+  if (await _saveBeforeNavigation(context, saveCurrent) && context.mounted) {
+    Navigator.pop(context, result);
+  }
 }
 
 /// Moves between diary questions by canonical question order, not route history.
@@ -124,13 +190,17 @@ Future<void> replaceLifeDiaryQuestion(
   BuildContext context,
   DateTime diaryDate,
   int targetQuestion, {
-  VoidCallback? saveCurrent,
+  LifeDiaryDraftSaveCallback? saveCurrent,
 }) async {
   if (targetQuestion < 1 || targetQuestion > 7) {
     throw RangeError.range(targetQuestion, 1, 7, 'targetQuestion');
   }
-  saveCurrent?.call();
-  await _draftWrite;
+  if (!await _saveBeforeNavigation(
+    context,
+    saveCurrent ?? persistCurrentLifeDiaryDraft,
+  )) {
+    return;
+  }
   if (!context.mounted) return;
   await Navigator.pushReplacement(
     context,
@@ -144,7 +214,7 @@ Future<void> goToPreviousLifeDiaryQuestion(
   BuildContext context,
   DateTime diaryDate,
   int currentQuestion, {
-  required VoidCallback saveCurrent,
+  required LifeDiaryDraftSaveCallback saveCurrent,
 }) async {
   if (currentQuestion <= 1) {
     await confirmDraftExit(context, saveCurrent);
@@ -162,7 +232,7 @@ Future<void> goToNextLifeDiaryQuestion(
   BuildContext context,
   DateTime diaryDate,
   int currentQuestion, {
-  required VoidCallback saveCurrent,
+  required LifeDiaryDraftSaveCallback saveCurrent,
 }) async {
   if (currentQuestion >= 7) return;
   await replaceLifeDiaryQuestion(
@@ -177,7 +247,7 @@ Future<void> showLifeDiaryQuestionNavigator(
   BuildContext context,
   DateTime diaryDate,
   int currentQuestion, {
-  VoidCallback? saveCurrent,
+  LifeDiaryDraftSaveCallback? saveCurrent,
 }) async {
   final completionValidator = const LifeDiaryCompletionValidator();
   final draftJson = currentLifeDiaryDraft.toJson();
@@ -490,142 +560,129 @@ class _LifeDiaryDatePageState extends State<LifeDiaryDatePage> {
     return Scaffold(
       appBar: AppBar(title: const Text('생명일기'), centerTitle: true),
       body: SafeArea(
-        child: Padding(
+        child: ListView(
           padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 24),
+          children: [
+            const SizedBox(height: 24),
 
-              Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 18,
-                    vertical: 9,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    _progress.label,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.onPrimaryContainer,
-                    ),
-                  ),
+            Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 9,
                 ),
-              ),
-
-              const SizedBox(height: 24),
-
-              const Text(
-                '생명일기를 기록할 날짜를\n선택해 주세요.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  height: 1.4,
-                ),
-              ),
-
-              const SizedBox(height: 40),
-
-              Container(
-                padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  border: Border.all(
-                    color: Theme.of(context).colorScheme.outlineVariant,
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  _progress.label,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onPrimaryContainer,
                   ),
-                  borderRadius: BorderRadius.circular(16),
                 ),
-                child: Column(
-                  children: [
-                    const Icon(Icons.calendar_month_rounded, size: 48),
+              ),
+            ),
 
-                    const SizedBox(height: 16),
+            const SizedBox(height: 24),
 
-                    const Text(
-                      '선택한 날짜',
-                      style: TextStyle(fontSize: 14, color: Colors.grey),
+            const Text(
+              '생명일기를 기록할 날짜를\n선택해 주세요.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                height: 1.4,
+              ),
+            ),
+
+            const SizedBox(height: 40),
+
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                ),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                children: [
+                  const Icon(Icons.calendar_month_rounded, size: 48),
+
+                  const SizedBox(height: 16),
+
+                  const Text(
+                    '선택한 날짜',
+                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  Text(
+                    formatDate(selectedDate),
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
                     ),
+                  ),
+                ],
+              ),
+            ),
 
-                    const SizedBox(height: 8),
+            const SizedBox(height: 24),
 
-                    Text(
-                      formatDate(selectedDate),
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
+            OutlinedButton.icon(
+              onPressed: selectDate,
+              icon: const Icon(Icons.edit_calendar),
+              label: const Text('다른 날짜 선택'),
+            ),
+
+            const SizedBox(height: 24),
+
+            SizedBox(
+              height: 56,
+              child: FilledButton(
+                onPressed: () async {
+                  final restored = await restoreLifeDiaryDraft(selectedDate);
+                  final action = _draftLifecycle.restoredDraftAction(
+                    restored: restored,
+                    draftSeason: currentLifeDiaryDraft.seasonNumber,
+                    draftSession: currentLifeDiaryDraft.sessionNumber,
+                    nextSeason: _progress.seasonNumber,
+                    nextSession: _progress.sessionNumber,
+                  );
+                  switch (action) {
+                    case RestoredDraftAction.startFresh:
+                      currentLifeDiaryDraft.reset(
+                        selectedDate,
+                        season: _progress.seasonNumber,
+                        session: _progress.sessionNumber,
+                      );
+                    case RestoredDraftAction.keepRenumbered:
+                      // Keep the written reflections; only the number moves.
+                      currentLifeDiaryDraft
+                        ..seasonNumber = _progress.seasonNumber
+                        ..sessionNumber = _progress.sessionNumber;
+                    case RestoredDraftAction.keepAsIs:
+                      break;
+                  }
+                  _draftLifecycle.beginDraft();
+                  if (!context.mounted) return;
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          LifeDiaryReadyPage(diaryDate: selectedDate),
                     ),
-                  ],
-                ),
+                  );
+                },
+                child: const Text('이 날짜로 시작', style: TextStyle(fontSize: 18)),
               ),
-
-              const SizedBox(height: 24),
-
-              OutlinedButton.icon(
-                onPressed: selectDate,
-                icon: const Icon(Icons.edit_calendar),
-                label: const Text('다른 날짜 선택'),
-              ),
-
-              const Spacer(),
-
-              SizedBox(
-                height: 56,
-                child: FilledButton(
-                  onPressed: () async {
-                    await _draftWrite;
-                    final forceFresh = _sameDiaryDate(
-                      _forceFreshDiaryDate,
-                      selectedDate,
-                    );
-                    final restored = forceFresh
-                        ? false
-                        : await restoreLifeDiaryDraft(selectedDate);
-                    final action = _draftLifecycle.restoredDraftAction(
-                      restored: restored,
-                      finalCompleted: currentLifeDiaryDraft.q7FinalCompleted,
-                      draftSeason: currentLifeDiaryDraft.seasonNumber,
-                      draftSession: currentLifeDiaryDraft.sessionNumber,
-                      nextSeason: _progress.seasonNumber,
-                      nextSession: _progress.sessionNumber,
-                    );
-                    switch (action) {
-                      case RestoredDraftAction.startFresh:
-                        await lifeDiaryDraftStore.delete(selectedDate);
-                        currentLifeDiaryDraft.reset(
-                          selectedDate,
-                          season: _progress.seasonNumber,
-                          session: _progress.sessionNumber,
-                        );
-                      case RestoredDraftAction.keepRenumbered:
-                        // Keep the written reflections; only the number moves.
-                        currentLifeDiaryDraft
-                          ..seasonNumber = _progress.seasonNumber
-                          ..sessionNumber = _progress.sessionNumber;
-                      case RestoredDraftAction.keepAsIs:
-                        break;
-                    }
-                    _forceFreshDiaryDate = null;
-                    _draftLifecycle.beginDraft();
-                    if (!context.mounted) return;
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            LifeDiaryReadyPage(diaryDate: selectedDate),
-                      ),
-                    );
-                  },
-                  child: const Text('이 날짜로 시작', style: TextStyle(fontSize: 18)),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

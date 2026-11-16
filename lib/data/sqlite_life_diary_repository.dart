@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:sqflite/sqflite.dart';
 
 import '../domain/life_diary_models.dart';
+import 'life_diary_draft_store.dart';
 import 'life_diary_repository.dart';
 
 class SqliteLifeDiaryRepository implements LifeDiaryRepository {
@@ -14,7 +15,17 @@ class SqliteLifeDiaryRepository implements LifeDiaryRepository {
   int _eventSequence = 0;
 
   @override
-  Future<void> save(LifeDiaryEntry entry) async {
+  Future<void> save(LifeDiaryEntry entry) => _save(entry);
+
+  @override
+  Future<void> completeDraft(LifeDiaryEntry entry) {
+    if (entry.status != LifeDiaryEntryStatus.completed) {
+      throw ArgumentError('Only completed entries can replace a UI draft.');
+    }
+    return _save(entry, removeDraft: true);
+  }
+
+  Future<void> _save(LifeDiaryEntry entry, {bool removeDraft = false}) async {
     await database.transaction((transaction) async {
       final now = _clock().toUtc().toIso8601String();
       final existing = await transaction.query(
@@ -90,6 +101,9 @@ LIMIT 1
             (nextStatus == 'REOPENED' || nextStatus == 'COMPLETED')) {
           await _appendEvent(transaction, entry.entryId, nextStatus, now);
         }
+      }
+      if (removeDraft) {
+        await LifeDiaryDraftStore.deleteIn(transaction, entry.entryDate);
       }
     });
   }
