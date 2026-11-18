@@ -6,6 +6,8 @@ import '../domain/life_diary_models.dart';
 import 'life_diary_draft_store.dart';
 import 'life_diary_repository.dart';
 
+enum LifeDiaryRestoreResult { inserted, alreadyPresent, conflict }
+
 class SqliteLifeDiaryRepository implements LifeDiaryRepository {
   SqliteLifeDiaryRepository(this.database, {DateTime Function()? clock})
     : _clock = clock ?? DateTime.now;
@@ -25,87 +27,128 @@ class SqliteLifeDiaryRepository implements LifeDiaryRepository {
     return _save(entry, removeDraft: true);
   }
 
-  Future<void> _save(LifeDiaryEntry entry, {bool removeDraft = false}) async {
-    await database.transaction((transaction) async {
-      final now = _clock().toUtc().toIso8601String();
-      final existing = await transaction.query(
+  /// Inserts a recovered completion without replacing any local record or draft.
+  Future<LifeDiaryRestoreResult> importCompletedBackup(LifeDiaryEntry entry) {
+    if (entry.status != LifeDiaryEntryStatus.completed) {
+      throw ArgumentError('Only completed entries can be imported.');
+    }
+    return database.transaction((transaction) async {
+      final matches = await transaction.query(
         'life_diary_entry',
-        columns: const ['entry_id', 'status'],
-        where: 'entry_id = ?',
-        whereArgs: [entry.entryId],
-        limit: 1,
+        where: 'entry_id = ? OR '
+            '(owner_user_id = ? AND season_number = ? AND session_number = ?)',
+        whereArgs: [
+          entry.entryId,
+          entry.ownerUserId,
+          entry.seasonNumber,
+          entry.sessionNumber,
+        ],
       );
-      final previousStatus = existing.isEmpty
-          ? null
-          : existing.first['status'] as String;
-
-      if (existing.isEmpty) {
-        await transaction.insert('life_diary_entry', {
-          ..._entryRow(entry),
-          'created_at': now,
-          'updated_at': now,
-          'completed_at': _completedAt(entry, now),
-        });
-        await _appendEvent(transaction, entry.entryId, 'CREATED', now);
-      } else {
-        await transaction.update(
-          'life_diary_entry',
-          {
-            ..._entryRow(entry),
-            'updated_at': now,
-            'completed_at': _completedAt(entry, now),
-          },
-          where: 'entry_id = ?',
-          whereArgs: [entry.entryId],
-        );
+      if (matches.isNotEmpty) {
+        if (matches.length == 1 &&
+            matches.single['entry_id'] == entry.entryId &&
+            matches.single['status'] == LifeDiaryEntryStatus.completed.wireValue) {
+          final saved = await _decodeEntry(transaction, matches.single);
+          if (jsonEncode(saved.toJson()) == jsonEncode(entry.toJson())) {
+            return LifeDiaryRestoreResult.alreadyPresent;
+          }
+        }
+        return LifeDiaryRestoreResult.conflict;
       }
 
-      final payloads = _questionPayloads(entry.questions);
-      var changed = false;
-      for (final questionId in LifeDiaryCanonicalIds.questionIds) {
-        final payloadJson = jsonEncode(payloads[questionId]);
-        final latest = await transaction.rawQuery(
-          '''
+      await _saveIn(transaction, entry);
+      return LifeDiaryRestoreResult.inserted;
+    });
+  }
+
+  Future<void> _save(LifeDiaryEntry entry, {bool removeDraft = false}) =>
+      database.transaction(
+        (transaction) => _saveIn(transaction, entry, removeDraft: removeDraft),
+      );
+
+  Future<void> _saveIn(
+    Transaction transaction,
+    LifeDiaryEntry entry, {
+    bool removeDraft = false,
+  }) async {
+    final now = _clock().toUtc().toIso8601String();
+    final existing = await transaction.query(
+      'life_diary_entry',
+      columns: const ['entry_id', 'status'],
+      where: 'entry_id = ?',
+      whereArgs: [entry.entryId],
+      limit: 1,
+    );
+    final previousStatus = existing.isEmpty
+        ? null
+        : existing.first['status'] as String;
+
+    if (existing.isEmpty) {
+      await transaction.insert('life_diary_entry', {
+        ..._entryRow(entry),
+        'created_at': now,
+        'updated_at': now,
+        'completed_at': _completedAt(entry, now),
+      });
+      await _appendEvent(transaction, entry.entryId, 'CREATED', now);
+    } else {
+      await transaction.update(
+        'life_diary_entry',
+        {
+          ..._entryRow(entry),
+          'updated_at': now,
+          'completed_at': _completedAt(entry, now),
+        },
+        where: 'entry_id = ?',
+        whereArgs: [entry.entryId],
+      );
+    }
+
+    final payloads = _questionPayloads(entry.questions);
+    var changed = false;
+    for (final questionId in LifeDiaryCanonicalIds.questionIds) {
+      final payloadJson = jsonEncode(payloads[questionId]);
+      final latest = await transaction.rawQuery(
+        '''
 SELECT payload_json, revision_number
 FROM life_diary_answer
 WHERE entry_id = ? AND question_id = ?
 ORDER BY revision_number DESC
 LIMIT 1
 ''',
-          [entry.entryId, questionId],
-        );
-        if (latest.isNotEmpty && latest.first['payload_json'] == payloadJson) {
-          continue;
-        }
-
-        final revision = latest.isEmpty
-            ? 1
-            : (latest.first['revision_number'] as int) + 1;
-        await transaction.insert('life_diary_answer', {
-          'entry_id': entry.entryId,
-          'question_id': questionId,
-          'payload_json': payloadJson,
-          'privacy_class': 'PRIVATE_RAW',
-          'revision_number': revision,
-          'updated_at': now,
-        });
-        changed = true;
+        [entry.entryId, questionId],
+      );
+      if (latest.isNotEmpty && latest.first['payload_json'] == payloadJson) {
+        continue;
       }
 
-      if (existing.isNotEmpty && changed) {
-        await _appendEvent(transaction, entry.entryId, 'AUTOSAVED', now);
+      final revision = latest.isEmpty
+          ? 1
+          : (latest.first['revision_number'] as int) + 1;
+      await transaction.insert('life_diary_answer', {
+        'entry_id': entry.entryId,
+        'question_id': questionId,
+        'payload_json': payloadJson,
+        'privacy_class': 'PRIVATE_RAW',
+        'revision_number': revision,
+        'updated_at': now,
+      });
+      changed = true;
+    }
+
+    if (existing.isNotEmpty && changed) {
+      await _appendEvent(transaction, entry.entryId, 'AUTOSAVED', now);
+    }
+    if (existing.isNotEmpty) {
+      final nextStatus = entry.status.wireValue;
+      if (previousStatus != nextStatus &&
+          (nextStatus == 'REOPENED' || nextStatus == 'COMPLETED')) {
+        await _appendEvent(transaction, entry.entryId, nextStatus, now);
       }
-      if (existing.isNotEmpty) {
-        final nextStatus = entry.status.wireValue;
-        if (previousStatus != nextStatus &&
-            (nextStatus == 'REOPENED' || nextStatus == 'COMPLETED')) {
-          await _appendEvent(transaction, entry.entryId, nextStatus, now);
-        }
-      }
-      if (removeDraft) {
-        await LifeDiaryDraftStore.deleteIn(transaction, entry.entryDate);
-      }
-    });
+    }
+    if (removeDraft) {
+      await LifeDiaryDraftStore.deleteIn(transaction, entry.entryDate);
+    }
   }
 
   @override
@@ -117,7 +160,7 @@ LIMIT 1
       limit: 1,
     );
     if (entries.isEmpty) return null;
-    return _decodeEntry(entries.first);
+    return _decodeEntry(database, entries.first);
   }
 
   @override
@@ -130,7 +173,7 @@ LIMIT 1
     );
     final result = <LifeDiaryEntry>[];
     for (final entry in entries) {
-      result.add(await _decodeEntry(entry));
+      result.add(await _decodeEntry(database, entry));
     }
     return result;
   }
@@ -184,8 +227,11 @@ LIMIT 1
   String? _completedAt(LifeDiaryEntry entry, String now) =>
       entry.status == LifeDiaryEntryStatus.completed ? now : null;
 
-  Future<LifeDiaryEntry> _decodeEntry(Map<String, Object?> row) async {
-    final answers = await database.rawQuery(
+  Future<LifeDiaryEntry> _decodeEntry(
+    DatabaseExecutor executor,
+    Map<String, Object?> row,
+  ) async {
+    final answers = await executor.rawQuery(
       '''
 SELECT answer.question_id, answer.payload_json
 FROM life_diary_answer AS answer

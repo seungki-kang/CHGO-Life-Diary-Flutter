@@ -1,7 +1,9 @@
+import 'package:chgo_life_diary/application/life_diary_completed_backup.dart';
 import 'package:chgo_life_diary/data/life_diary_draft_store.dart';
 import 'package:chgo_life_diary/data/life_diary_database.dart';
 import 'package:chgo_life_diary/data/sqlite_life_diary_repository.dart';
 import 'package:chgo_life_diary/domain/life_diary_models.dart';
+import 'package:cryptography/cryptography.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -31,6 +33,65 @@ void main() {
   });
 
   tearDown(() => repository.close());
+
+  test('encrypted completion restores once and rejects a different account', () async {
+    final entry = buildEntry(status: LifeDiaryEntryStatus.completed);
+    await repository.save(entry);
+    final service = LifeDiaryCompletedBackup(repository);
+    final prepared = await service.prepare(
+      entryId: entry.entryId,
+      localOwnerId: entry.ownerUserId,
+      accountId: 'synthetic-account',
+      generation: 1,
+    );
+    final response = prepared.toRequestBody();
+    expect(response.keys, unorderedEquals(['format_version', 'ciphertext']));
+    final reference = LifeDiaryBackupReference.parse(prepared.recoveryCode);
+
+    // Remove the synthetic source to simulate an empty target repository.
+    await database.delete('life_diary_entry');
+    await expectLater(
+      service.restore(
+        backup: reference,
+        response: response,
+        localOwnerId: entry.ownerUserId,
+        accountId: 'other-account',
+      ),
+      throwsA(isA<SecretBoxAuthenticationError>()),
+    );
+    expect(await repository.findById(entry.entryId), isNull);
+
+    Future<LifeDiaryRestoreResult> restore() => service.restore(
+      backup: reference,
+      response: response,
+      localOwnerId: entry.ownerUserId,
+      accountId: 'synthetic-account',
+    );
+    expect(await restore(), LifeDiaryRestoreResult.inserted);
+    expect(await restore(), LifeDiaryRestoreResult.alreadyPresent);
+    expect((await repository.findById(entry.entryId))!.toJson(), entry.toJson());
+    expect(await repository.findByOwner(entry.ownerUserId), hasLength(1));
+  });
+
+  test('backup import preserves a different entry occupying the same slot', () async {
+    final existing = buildEntry(status: LifeDiaryEntryStatus.completed);
+    final incoming = buildEntry(
+      entryId: 'another-entry',
+      q1Narrative: '합성 기록',
+      status: LifeDiaryEntryStatus.completed,
+    );
+    await repository.save(existing);
+
+    expect(
+      await repository.importCompletedBackup(incoming),
+      LifeDiaryRestoreResult.conflict,
+    );
+    expect(await repository.findById(incoming.entryId), isNull);
+    expect(
+      (await repository.findById(existing.entryId))!.toJson(),
+      existing.toJson(),
+    );
+  });
 
   test('failed Q7 cleanup rolls back completion and keeps the draft', () async {
     final entry = buildEntry(status: LifeDiaryEntryStatus.completed);
