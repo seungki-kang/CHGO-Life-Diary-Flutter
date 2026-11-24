@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'auth_session_store.dart';
 import 'package:flutter/foundation.dart';
 
 /// Offline-testable preparation only. No production composition or storage I/O.
@@ -25,6 +27,7 @@ class LifeDiaryAuthSession {
 class LifeDiaryDevLogin {
   LifeDiaryDevLogin({
     required this.client,
+    this.store,
     required this.openBrowser,
     required this.createPkce,
     DateTime Function()? now,
@@ -41,6 +44,7 @@ class LifeDiaryDevLogin {
   final void Function(String stage)? onStage;
   final Duration operationTimeout;
   final LifeDiaryAuthClient client;
+  final AuthSessionStore? store;
   final Future<void> Function(Uri) openBrowser;
   // Future Android adapter must supply random verifier + S256 challenge.
   final ({String verifier, String challenge}) Function() createPkce;
@@ -59,9 +63,71 @@ class LifeDiaryDevLogin {
 
   LifeDiaryAuthSession? get activeSession => signedIn ? _session : null;
 
+  Future<void> _save(LifeDiaryAuthSession session, {bool logoutPending = false}) async {
+    await store?.write(jsonEncode({
+      'version': 1,
+      'credential': session.credential,
+      'account': session.accountId,
+      'expires': session.expiresAt.toUtc().toIso8601String(),
+      'logout_pending': logoutPending,
+    }));
+  }
+
+  /// Network errors retain the sealed credential, but never expose a session.
+  /// A persisted logout intent must be revoked before another login is allowed.
+  Future<void> restore() async {
+    if (!enabled || _busy) throw StateError('Session recovery unavailable');
+    if (store == null) return;
+    _busy = true;
+    _session = null;
+    _clearPending();
+    try {
+      final raw = await store!.read();
+      if (raw == null) return;
+      LifeDiaryAuthSession saved;
+      bool pending;
+      try {
+        final data = jsonDecode(raw) as Map<String, dynamic>;
+        if (data['version'] != 1 || data['logout_pending'] is! bool) {
+          throw FormatException();
+        }
+        saved = LifeDiaryAuthSession(data['credential'] as String,
+            data['account'] as String, DateTime.parse(data['expires'] as String));
+        pending = data['logout_pending'] as bool;
+        if (saved.credential.isEmpty || saved.accountId.isEmpty) {
+          throw FormatException();
+        }
+      } catch (_) {
+        await store!.clear();
+        throw StateError('Stored session invalid; login again');
+      }
+      if (!saved.expiresAt.isAfter(_now())) {
+        await store!.clear();
+        return;
+      }
+      if (pending) {
+        await client.logout(saved.credential).timeout(operationTimeout);
+        await store!.clear();
+        return;
+      }
+      final account = await client.session(saved.credential).timeout(operationTimeout);
+      if (account != saved.accountId) {
+        await store!.clear();
+        throw StateError('Stored session invalid; login again');
+      }
+      _session = saved;
+    } finally {
+      _busy = false;
+    }
+  }
+
   Future<void> login() async {
     if (!enabled) throw StateError('Development login disabled');
     if (_busy || signedIn) throw StateError('Login unavailable');
+    if (store != null) {
+      await restore();
+      if (signedIn) return;
+    }
     _busy = true;
     _clearPending();
     try {
@@ -137,6 +203,7 @@ class LifeDiaryDevLogin {
               session.accountId) {
         throw StateError('Invalid session');
       }
+      await _save(session);
       _session = session;
     } catch (_) {
       _session = null;
@@ -148,14 +215,26 @@ class LifeDiaryDevLogin {
 
   Future<void> logout() async {
     if (_busy) throw StateError('Login busy');
-    _clearPending();
-    final session = _session;
-    if (session == null) return;
     _busy = true;
+    _clearPending();
     try {
-      // Keep the credential on failure so revocation can be retried explicitly.
+      var session = _session;
+      if (session == null && store != null) {
+        final raw = await store!.read();
+        if (raw != null) {
+          final data = jsonDecode(raw) as Map<String, dynamic>;
+          if (data['version'] != 1) throw StateError('Stored session invalid');
+          session = LifeDiaryAuthSession(data['credential'] as String,
+              data['account'] as String, DateTime.parse(data['expires'] as String));
+        }
+      }
+      if (session == null) return;
+      // Persist intent before attempting any network request. A crash or network
+      // failure cannot turn this credential into an active restored session.
+      await _save(session, logoutPending: true);
       onStage?.call('Logout request');
       await client.logout(session.credential).timeout(operationTimeout);
+      await store?.clear();
       _session = null;
     } catch (_) {
       throw StateError('Logout failed; retry logout');

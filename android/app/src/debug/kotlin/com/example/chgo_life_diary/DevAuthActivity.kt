@@ -16,6 +16,7 @@ class DevAuthActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(engine: FlutterEngine) {
         super.configureFlutterEngine(engine)
+        CommonSessionVault.install(this, engine)
         channel = MethodChannel(engine.dartExecutor.binaryMessenger, "life_diary/dev_auth")
         channel!!.setMethodCallHandler { call, result ->
             when (call.method) {

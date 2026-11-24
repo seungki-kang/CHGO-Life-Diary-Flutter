@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'application/auth_session_store.dart';
 import 'package:flutter/services.dart';
 
 import 'application/life_diary_dev_login.dart';
@@ -26,9 +27,10 @@ class DevAuthPage extends StatefulWidget {
   static String get configuredClientId =>
       oneApi ? publicClientId : 'synthetic-life-diary-debug';
 
-  const DevAuthPage({super.key, this.embedded = false, this.client});
+  const DevAuthPage({super.key, this.embedded = false, this.accountMode = false, this.client});
 
   final bool embedded;
+  final bool accountMode;
   final LifeDiaryAuthClient? client;
 
   @override
@@ -61,6 +63,9 @@ class _DevAuthPageState extends State<DevAuthPage> {
       }
     });
     login = LifeDiaryDevLogin(
+      store: AndroidAuthSessionStore.enabled && widget.client == null && DevAuthPage.oneApi
+          ? AndroidAuthSessionStore('life_diary:${DevAuthPage.configuredClientId}:loopback8000:v1')
+          : null,
       client:
           widget.client ??
           LifeDiaryOneApiAuthClient(
@@ -72,6 +77,9 @@ class _DevAuthPageState extends State<DevAuthPage> {
       openBrowser: (uri) => channel.invokeMethod<void>('openBrowser', '$uri'),
       createPkce: () => pendingPkce!,
     );
+    if (login!.store != null) {
+      perform(() => login!.restore());
+    }
     channel
         .invokeMethod<void>('ready')
         .timeout(const Duration(seconds: 5))
@@ -119,6 +127,12 @@ class _DevAuthPageState extends State<DevAuthPage> {
   Widget build(BuildContext context) {
     final content = Column(
       children: [
+        if (widget.accountMode) ...[
+          Text('내 계정 · 개발 시험', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          const Text('로그인 없이 일기를 작성할 수 있습니다. 로그인만으로 일기가 업로드되지 않습니다.'),
+          const SizedBox(height: 8),
+        ],
         Text(
           !LifeDiaryDevLogin.enabled
               ? '개발 로그인 비활성화'
@@ -126,7 +140,13 @@ class _DevAuthPageState extends State<DevAuthPage> {
               ? '생명일기 공개 Client ID 설정 필요'
               : status,
         ),
-        if (LifeDiaryDevLogin.enabled) Text('현재 단계: $stage'),
+        if (LifeDiaryDevLogin.enabled && !widget.accountMode)
+          Text('현재 단계: $stage'),
+        if (login?.store != null)
+          TextButton(
+            onPressed: busy ? null : () => perform(() => login!.restore()),
+            child: const Text('로그인 상태 복구'),
+          ),
         ElevatedButton(
           onPressed:
               !LifeDiaryDevLogin.enabled ||
@@ -145,7 +165,9 @@ class _DevAuthPageState extends State<DevAuthPage> {
                   await login!.login();
                 }),
           child: Text(
-            widget.embedded
+            widget.accountMode
+                ? '로그인'
+                : widget.embedded
                 ? 'Test Login'
                 : DevAuthPage.oneApi
                 ? '개발 로그인'
@@ -179,7 +201,7 @@ class _DevAuthPageState extends State<DevAuthPage> {
                   busy
               ? null
               : () => perform(login!.logout),
-          child: Text(widget.embedded ? 'Logout' : '로그아웃'),
+          child: Text(widget.accountMode ? '로그아웃' : widget.embedded ? 'Logout' : '로그아웃'),
         ),
       ],
     );
