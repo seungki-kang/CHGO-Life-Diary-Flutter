@@ -1,6 +1,6 @@
 # Life Diary backup and coach sharing — design requirements
 
-Status: **REQUIREMENTS** — no implementation exists  
+Status: **REQUIREMENTS**. A development-only completed-entry backup flow is implemented; production readiness is not established.
 Decisions: LD-D1 (b) and LD-D5 in ADR-LD01, 2026-10-17
 
 ## Owner requirement
@@ -54,3 +54,27 @@ This is a technical requirement, not a policy statement. It is met only if nobod
   
   All three conflict with Section 1. Reuse the threat analysis, lifecycle, deletion, and export material, and replace the key model with device-held keys.
 - **Earlier API design.** The Vault and coach-sharing endpoints in the consolidated OpenAPI v2 of `JesusLife-Church-OS` (formerly CHGO-Platform) belong to this service. They are removed from Church OS in its next API baseline (ADR-LD01, Section 4.4). The PDV-008 Vault test pack was removed from Church OS on 2026-10-17 and is available at commit `b64dd9a` there.
+
+## Completed-entry integration status
+
+Code review as of 2026-11-25 confirms:
+
+- `lib/application/life_diary_completed_backup.dart` provides the completed-entry
+  backup service used by the development screen.
+- `lib/presentation/life_diary_dev_backup_page.dart` sends authenticated backup
+  and restore requests. It uses synthetic entries in a separate development
+  SQLite database rather than the ordinary diary database.
+- `lib/main_dev_auth.dart` connects the screen under development-login, One API,
+  completed-backup opt-in and signed-in conditions.
+- `test/data/sqlite_life_diary_repository_test.dart` includes tests for
+  wrong-account decryption rejection, identical restore returning
+  `alreadyPresent`, and preservation of an existing entry in the same slot.
+
+The screen and authenticated request wiring are present. This update records
+code review, not a new test run or live server backup/restore verification.
+
+Actual server backup/restore, device-to-device recovery, recovery-code loss,
+and operational key management require separate verification. Login and session
+recovery alone do not establish backup readiness. The requirements above remain
+applicable. This development flow does not establish production readiness or
+coach-sharing implementation.
