@@ -355,7 +355,9 @@ class ChgoLifeDiaryApp extends StatelessWidget {
 // ============================================================
 
 class LifeDiaryStartPage extends StatelessWidget {
-  const LifeDiaryStartPage({super.key});
+  const LifeDiaryStartPage({super.key, this.devLoginClient});
+
+  final LifeDiaryAuthClient? devLoginClient;
 
   @override
   Widget build(BuildContext context) {
@@ -368,6 +370,22 @@ class LifeDiaryStartPage extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                if (LifeDiaryDevLogin.enabled &&
+                    !kIsWeb &&
+                    defaultTargetPlatform == TargetPlatform.android)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: DevAuthPage(
+                          embedded: true,
+                          accountMode: DevAuthPage.oneApi,
+                          client: devLoginClient,
+                        ),
+                      ),
+                    ),
+                  ),
                 ClipRect(
                   child: SizedBox(
                     width: 104,
