@@ -20,15 +20,17 @@ class LifeDiaryDraftPersistence {
   final DraftSave _save;
   final Future<void> Function(Duration) _delay;
   final void Function(int attempt, Object error)? _onRetry;
-  Future<void> _tail = Future<void>.value();
+  Future<void>? _tail;
 
-  Future<void> get settled => _tail;
+  // An unused queue has no work to await. Create its completed future in the
+  // caller's zone rather than retaining the zone where the queue was created.
+  Future<void> get settled => _tail ?? Future<void>.value();
 
   Future<void> enqueue(DateTime date, Map<String, Object?> payload) {
     final snapshot = Map<String, Object?>.from(
       jsonDecode(jsonEncode(payload)) as Map,
     );
-    final write = _tail.then((_) => _saveWithRetry(date, snapshot));
+    final write = settled.then((_) => _saveWithRetry(date, snapshot));
     // A failed checkpoint must not prevent later checkpoints from being saved.
     _tail = write.then<void>((_) {}, onError: (Object _, StackTrace _) {});
     return write;
