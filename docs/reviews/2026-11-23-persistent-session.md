@@ -33,3 +33,15 @@ SQLite·기록·초안·완료·공유 동의·백업 데이터는 읽거나 쓰
 - offline/enforce-lockfile 의존성 준비 PASS.
 - 전체 analyze PASS, 인증·복구·홈 테스트 18 PASS.
 - Android 기기 검증은 앞서 전체 작업 트리에서 수행한 결과이며, 이 사본의 기기 빌드 검증은 별도임.
+
+## 최신 main 통합 검증 - 2026-11-25
+
+- Android 개발 네트워크 설정 충돌 해결: XML 선언과 기존 루프백 제한 유지.
+- 전체 analyze PASS.
+- 전체 테스트 114 PASS, 24 SKIP.
+- 인증·복구·홈 활성화 테스트 18 PASS.
+- LIFE-DIARY-CONTRACT PASS, errors 없음.
+- 정본 CSV는 Git 원본 바이트로 복원하여 핀 해시 일치 확인. 정본 내용과 핀 변경 없음.
+- 지속 로그인 플래그를 켠 Android debug APK 빌드 PASS.
+- 통합 APK의 실제 로그인·재시작 복구 검증은 아직 NOT_RUN.
+- 만료 전 개발 세션 복구 범위이며 자동 갱신·운영 배포·보안 감사 완료를 의미하지 않음.
