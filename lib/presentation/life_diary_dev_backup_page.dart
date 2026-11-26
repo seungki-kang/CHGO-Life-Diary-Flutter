@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -25,6 +26,12 @@ class _LifeDiaryDevBackupPageState extends State<LifeDiaryDevBackupPage> {
   static const _base = 'http://127.0.0.1:8000/api/v1/mobile/life-diary/backup';
   static const _timeout = Duration(seconds: 10);
   static const _owner = 'synthetic-diary-owner';
+  static const _restoreOnly = bool.fromEnvironment(
+    'LIFE_DIARY_BACKUP_RESTORE_ONLY',
+  );
+  static const _testNamespace = String.fromEnvironment(
+    'LIFE_DIARY_BACKUP_TEST_NAMESPACE',
+  );
   final _client = HttpClient()..connectionTimeout = _timeout;
   final _code = TextEditingController();
   final _factory = LifeDiaryEntryFactory(ownerUserId: _owner);
@@ -36,10 +43,19 @@ class _LifeDiaryDevBackupPageState extends State<LifeDiaryDevBackupPage> {
   String _status = '합성 일기를 백업하거나 복구 코드를 입력하세요.';
 
   Future<SqliteLifeDiaryRepository> _open() async {
+    if (!kDebugMode) {
+      throw StateError('Development backup requires debug mode');
+    }
+    if ((_restoreOnly && _testNamespace.isEmpty) ||
+        (_testNamespace.isNotEmpty &&
+            !RegExp(r'^[a-z0-9_-]{1,48}$').hasMatch(_testNamespace))) {
+      throw StateError('Invalid development database namespace');
+    }
     final accountPath = base64UrlEncode(utf8.encode(_account));
+    final suffix = _testNamespace.isEmpty ? '' : '_$_testNamespace';
     final root = await getDatabasesPath();
     final db = await openDatabase(
-      '$root/life_diary_completed_backup_dev_$accountPath.db',
+      '$root/life_diary_completed_backup_dev_$accountPath$suffix.db',
       version: lifeDiaryDatabaseVersion,
       onConfigure: (db) => db.execute('PRAGMA foreign_keys = ON'),
       onCreate: (db, _) async {
@@ -61,17 +77,23 @@ class _LifeDiaryDevBackupPageState extends State<LifeDiaryDevBackupPage> {
     if (session == null || session.accountId != _account) {
       throw StateError('Session unavailable');
     }
-    final request = await _client.openUrl(method, Uri.parse('$_base$path'))
+    final request = await _client
+        .openUrl(method, Uri.parse('$_base$path'))
         .timeout(_timeout);
     request.followRedirects = false;
-    request.headers.set(HttpHeaders.authorizationHeader,
-        'Bearer ${session.credential}');
+    request.headers.set(
+      HttpHeaders.authorizationHeader,
+      'Bearer ${session.credential}',
+    );
     if (body != null) {
       request.headers.contentType = ContentType.json;
       request.write(jsonEncode(body));
     }
     final response = await request.close().timeout(_timeout);
-    final text = await response.transform(utf8.decoder).join().timeout(_timeout);
+    final text = await response
+        .transform(utf8.decoder)
+        .join()
+        .timeout(_timeout);
     if (!expected.contains(response.statusCode)) {
       throw HttpException('HTTP ${response.statusCode}');
     }
@@ -93,26 +115,28 @@ class _LifeDiaryDevBackupPageState extends State<LifeDiaryDevBackupPage> {
         : null;
     final generation = _generation ?? (consent!['generation'] as int);
     _generation = generation;
-    final prepared = _prepared ?? await LifeDiaryCompletedBackup(repository).prepare(
-      entryId: entry.entryId,
-      localOwnerId: _owner,
-      accountId: _account,
-      generation: generation,
-    );
+    final prepared =
+        _prepared ??
+        await LifeDiaryCompletedBackup(repository).prepare(
+          entryId: entry.entryId,
+          localOwnerId: _owner,
+          accountId: _account,
+          generation: generation,
+        );
     _prepared = prepared;
-    await _request(
-      'PUT',
-      '/entries/$generation/${prepared.backupId}',
-      {200, 201},
-      body: prepared.toRequestBody(),
-    );
+    await _request('PUT', '/entries/$generation/${prepared.backupId}', {
+      200,
+      201,
+    }, body: prepared.toRequestBody());
     return '완료 일기 백업 성공 · 복구 코드를 보관하세요.';
   }
 
   Future<String> _restore() async {
     final reference = LifeDiaryBackupReference.parse(_code.text);
     final payload = await _request(
-      'GET', '/entries/${reference.generation}/${reference.backupId}', {200},
+      'GET',
+      '/entries/${reference.generation}/${reference.backupId}',
+      {200},
     );
     final session = widget.session();
     if (session == null || session.accountId != _account) {
@@ -151,8 +175,10 @@ class _LifeDiaryDevBackupPageState extends State<LifeDiaryDevBackupPage> {
   void dispose() {
     _code.dispose();
     _client.close(force: true);
-    _repository.then<void>((repository) => repository.close(),
-        onError: (Object _) {});
+    _repository.then<void>(
+      (repository) => repository.close(),
+      onError: (Object _) {},
+    );
     super.dispose();
   }
 
@@ -167,11 +193,13 @@ class _LifeDiaryDevBackupPageState extends State<LifeDiaryDevBackupPage> {
           const Text('합성 기록 · 개발 계정 · 임시 PostgreSQL'),
           const Text('복구 코드를 잃으면 이 백업을 열 수 없습니다.'),
           Text(_status),
-          FilledButton(
-            onPressed: _busy ? null : () => _run(_backup),
-            child: const Text('동의하고 합성 일기 백업'),
-          ),
-          if (_prepared case final prepared?) SelectableText(prepared.recoveryCode),
+          if (!_restoreOnly)
+            FilledButton(
+              onPressed: _busy ? null : () => _run(_backup),
+              child: const Text('동의하고 합성 일기 백업'),
+            ),
+          if (_prepared case final prepared?)
+            SelectableText(prepared.recoveryCode),
           TextField(
             controller: _code,
             enabled: !_busy,
@@ -185,28 +213,34 @@ class _LifeDiaryDevBackupPageState extends State<LifeDiaryDevBackupPage> {
             child: const Text('완료 일기 복구'),
           ),
           OutlinedButton(
-            onPressed: _busy ? null : () async {
-              await _run(() async {
-                final repository = await _repository;
-                if (!context.mounted) return '';
-                await Navigator.of(context).push(MaterialPageRoute<void>(
-                  builder: (_) => LifeDiaryHistoryPage(
-                    repository: repository,
-                    ownerUserId: _owner,
-                  ),
-                ));
-                return _status;
-              });
-            },
+            onPressed: _busy
+                ? null
+                : () async {
+                    await _run(() async {
+                      final repository = await _repository;
+                      if (!context.mounted) return '';
+                      await Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => LifeDiaryHistoryPage(
+                            repository: repository,
+                            ownerUserId: _owner,
+                          ),
+                        ),
+                      );
+                      return _status;
+                    });
+                  },
             child: const Text('검증 일기 목록'),
           ),
           TextButton(
-            onPressed: _busy || _generation == null ? null : () => _run(() async {
-              await _request('DELETE', '/consent/$_generation', {204});
-              _generation = null;
-              _prepared = null;
-              return '백업 동의를 철회했습니다.';
-            }),
+            onPressed: _busy || _generation == null
+                ? null
+                : () => _run(() async {
+                    await _request('DELETE', '/consent/$_generation', {204});
+                    _generation = null;
+                    _prepared = null;
+                    return '백업 동의를 철회했습니다.';
+                  }),
             child: const Text('백업 동의 철회'),
           ),
         ],
