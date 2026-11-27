@@ -1,8 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="chgo_life_diary"
+        android:label="생명일기"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@drawable/ic_life_diary">
         <activity
             android:name=".MainActivity"
             android:exported="true"
