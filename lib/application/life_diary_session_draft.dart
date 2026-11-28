@@ -58,6 +58,7 @@ String characterDifferenceGuidance(String typedText, String expectedText) {
 
 class LifeDiarySessionDraft {
   DateTime? diaryDate;
+  String? authorAccountId;
   int seasonNumber = 1;
   int sessionNumber = 1;
 
@@ -132,6 +133,7 @@ class LifeDiarySessionDraft {
   bool q7FinalCompleted = false;
 
   Map<String, Object?> toJson() => {
+    if (authorAccountId != null) 'author_account_id': authorAccountId,
     'season_number': seasonNumber,
     'session_number': sessionNumber,
     'q1_detail': q1Detail,
@@ -202,6 +204,8 @@ class LifeDiarySessionDraft {
 
   void loadJson(DateTime date, Map<String, Object?> json) {
     reset(date);
+    final account = json['author_account_id'];
+    if (account is String && account.isNotEmpty) authorAccountId = account;
     String text(String key) => json[key] as String? ?? '';
     bool flag(String key) => json[key] as bool? ?? false;
     int number(String key) => (json[key] as num?)?.toInt() ?? 0;
@@ -298,6 +302,7 @@ class LifeDiarySessionDraft {
 
   void reset(DateTime date, {int season = 1, int session = 1}) {
     diaryDate = date;
+    authorAccountId = null;
     seasonNumber = season;
     sessionNumber = session;
     q1Detail = '';

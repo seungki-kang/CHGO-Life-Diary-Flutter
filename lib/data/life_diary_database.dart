@@ -1,7 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 
 const lifeDiaryDatabaseName = 'chgo_life_diary.db';
-const lifeDiaryDatabaseVersion = 3;
+const lifeDiaryDatabaseVersion = 4;
 
 abstract final class LifeDiaryDatabase {
   static Future<Database> open() async {
@@ -14,10 +14,12 @@ abstract final class LifeDiaryDatabase {
         await createV001(database);
         await createV002(database);
         await createV003(database);
+        await createV004(database);
       },
       onUpgrade: (database, oldVersion, newVersion) async {
         if (oldVersion < 2) await createV002(database);
         if (oldVersion < 3) await createV003(database);
+        if (oldVersion < 4) await createV004(database);
       },
     );
   }
@@ -33,6 +35,14 @@ abstract final class LifeDiaryDatabase {
       await database.execute(statement);
     }
   }
+
+  static Future<void> createV004(DatabaseExecutor database) =>
+      database.execute('''
+CREATE TABLE life_diary_entry_author_account (
+  entry_id TEXT PRIMARY KEY REFERENCES life_diary_entry(entry_id) ON DELETE CASCADE,
+  account_id TEXT NOT NULL CHECK (length(account_id) > 0)
+)
+''');
 
   static Future<void> createV003(DatabaseExecutor database) async {
     for (final statement in v003Statements) {

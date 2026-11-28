@@ -11,11 +11,13 @@ class LifeDiaryHistoryPage extends StatefulWidget {
     required this.repository,
     required this.ownerUserId,
     this.logger,
+    this.onBackup,
   });
 
   final LifeDiaryRepository repository;
   final String ownerUserId;
   final AppLogger? logger;
+  final Future<void> Function(BuildContext, LifeDiaryEntry)? onBackup;
 
   @override
   State<LifeDiaryHistoryPage> createState() => _LifeDiaryHistoryPageState();
@@ -276,6 +278,7 @@ class _LifeDiaryHistoryPageState extends State<LifeDiaryHistoryPage> {
                                         entry: entry,
                                         repository: widget.repository,
                                         logger: widget.logger,
+                                        onBackup: widget.onBackup,
                                       ),
                                     ),
                                   );
@@ -325,11 +328,13 @@ class LifeDiaryDetailPage extends StatefulWidget {
     required this.entry,
     required this.repository,
     this.logger,
+    this.onBackup,
   });
 
   final LifeDiaryEntry entry;
   final LifeDiaryRepository repository;
   final AppLogger? logger;
+  final Future<void> Function(BuildContext, LifeDiaryEntry)? onBackup;
 
   @override
   State<LifeDiaryDetailPage> createState() => _LifeDiaryDetailPageState();
@@ -425,6 +430,13 @@ class _LifeDiaryDetailPageState extends State<LifeDiaryDetailPage> {
         title: const Text('생명일기 상세'),
         centerTitle: true,
         actions: [
+          if (entry.status == LifeDiaryEntryStatus.completed &&
+              widget.onBackup != null)
+            IconButton(
+              tooltip: '이 완료 일기 백업',
+              onPressed: () => widget.onBackup!(context, entry),
+              icon: const Icon(Icons.cloud_upload_outlined),
+            ),
           IconButton(
             tooltip: '수정',
             onPressed: _edit,

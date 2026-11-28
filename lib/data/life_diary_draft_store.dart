@@ -30,7 +30,14 @@ class LifeDiaryDraftStore {
   }
 
   Future<Map<String, Object?>?> load(DateTime date) async {
-    final rows = await database.query(
+    return loadIn(database, date);
+  }
+
+  static Future<Map<String, Object?>?> loadIn(
+    DatabaseExecutor executor,
+    DateTime date,
+  ) async {
+    final rows = await executor.query(
       'life_diary_ui_draft',
       columns: const ['payload_json'],
       where: 'draft_date = ?',

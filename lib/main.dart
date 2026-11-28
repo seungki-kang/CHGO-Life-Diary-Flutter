@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import 'application/life_diary_dev_login.dart';
-import 'main_dev_auth.dart' show DevAuthPage;
+import 'main_dev_auth.dart' show DevAuthPage, DevAuthPageState;
 
 import 'core/observability/app_logger.dart';
 import 'application/life_diary_completion_validator.dart';
@@ -18,6 +18,7 @@ import 'data/life_diary_draft_store.dart';
 import 'data/life_diary_entry_factory.dart';
 import 'data/sqlite_life_diary_repository.dart';
 import 'presentation/life_diary_history_page.dart';
+import 'presentation/life_diary_dev_backup_page.dart';
 import 'presentation/life_diary_drafts_page.dart';
 
 part 'application/life_diary_session_draft.dart';

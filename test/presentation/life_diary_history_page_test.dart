@@ -44,6 +44,49 @@ void main() {
     expect(find.text('감사 인사를 전한다'), findsOneWidget);
   });
 
+  testWidgets('passes the selected completed entry to backup', (tester) async {
+    final first = _entry();
+    final second = _entry(
+      entryId: 'entry-2',
+      sessionNumber: 2,
+      entryDate: DateTime(2026, 10, 7),
+    );
+    LifeDiaryEntry? selected;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: LifeDiaryHistoryPage(
+          repository: _FakeRepository([first, second]),
+          ownerUserId: 'owner',
+          onBackup: (_, entry) async {
+            selected = entry;
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip('이 완료 일기 백업'), findsNothing);
+    await tester.tap(find.text('2026년 10월 7일'));
+    await tester.pumpAndSettle();
+    expect(selected, isNull);
+    await tester.tap(find.byTooltip('이 완료 일기 백업'));
+    expect(selected, same(second));
+  });
+
+  testWidgets('hides backup in a reopened diary', (tester) async {
+    final entry = _entry(status: LifeDiaryEntryStatus.reopened);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: LifeDiaryDetailPage(
+          entry: entry,
+          repository: _FakeRepository([entry]),
+          onBackup: (_, _) async => fail('A reopened entry cannot be backed up'),
+        ),
+      ),
+    );
+    expect(find.byTooltip('이 완료 일기 백업'), findsNothing);
+  });
+
   testWidgets('confirms deletion and refreshes the history list', (
     tester,
   ) async {

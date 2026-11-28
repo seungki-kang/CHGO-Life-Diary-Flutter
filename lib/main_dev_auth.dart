@@ -34,10 +34,12 @@ class DevAuthPage extends StatefulWidget {
   final LifeDiaryAuthClient? client;
 
   @override
-  State<DevAuthPage> createState() => _DevAuthPageState();
+  DevAuthPageState createState() => DevAuthPageState();
 }
 
-class _DevAuthPageState extends State<DevAuthPage> {
+class DevAuthPageState extends State<DevAuthPage> {
+  LifeDiaryAuthSession? get activeSession =>
+      busy ? null : login?.activeSession;
   static const channel = MethodChannel('life_diary/dev_auth');
   LifeDiaryDevLogin? login;
   String status = DevAuthPage.oneApi
