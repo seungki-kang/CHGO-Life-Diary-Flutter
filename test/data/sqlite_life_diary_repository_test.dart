@@ -23,6 +23,7 @@ void main() {
           await LifeDiaryDatabase.createV001(db);
           await LifeDiaryDatabase.createV002(db);
           await LifeDiaryDatabase.createV003(db);
+          await LifeDiaryDatabase.createV004(db);
         },
       ),
     );
@@ -33,6 +34,38 @@ void main() {
   });
 
   tearDown(() => repository.close());
+
+  test('completion preserves the author saved with the draft', () async {
+    final entry = buildEntry(status: LifeDiaryEntryStatus.completed);
+    final drafts = LifeDiaryDraftStore(database);
+
+    await drafts.save(entry.entryDate, {'author_account_id': 'account-a'});
+    await repository.completeDraft(entry);
+    expect(await drafts.load(entry.entryDate), isNull);
+    expect(await repository.findAuthorAccountId(entry.entryId), 'account-a');
+
+    // Completing an existing record must not assign it to another account.
+    await drafts.save(entry.entryDate, {'author_account_id': 'account-b'});
+    await repository.completeDraft(entry);
+
+    expect(
+      await database.query('life_diary_entry_author_account'),
+      [{'entry_id': entry.entryId, 'account_id': 'account-a'}],
+    );
+  });
+
+  test('legacy drafts and existing entries are never assigned an account', () async {
+    final entry = buildEntry(status: LifeDiaryEntryStatus.completed);
+    final drafts = LifeDiaryDraftStore(database);
+
+    await drafts.save(entry.entryDate, {'q7_action': 'synthetic action'});
+    await repository.completeDraft(entry);
+    await drafts.save(entry.entryDate, {'author_account_id': 'account-b'});
+    await repository.completeDraft(entry);
+
+    expect(await database.query('life_diary_entry_author_account'), isEmpty);
+    expect(await repository.findAuthorAccountId(entry.entryId), isNull);
+  });
 
   test('encrypted completion restores once and rejects a different account', () async {
     final entry = buildEntry(status: LifeDiaryEntryStatus.completed);

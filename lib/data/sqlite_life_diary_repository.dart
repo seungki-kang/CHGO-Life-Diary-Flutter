@@ -147,8 +147,29 @@ LIMIT 1
       }
     }
     if (removeDraft) {
+      if (existing.isEmpty) {
+        final draft = await LifeDiaryDraftStore.loadIn(transaction, entry.entryDate);
+        final account = draft?['author_account_id'];
+        if (account is String && account.isNotEmpty) {
+          await transaction.insert('life_diary_entry_author_account', {
+            'entry_id': entry.entryId,
+            'account_id': account,
+          });
+        }
+      }
       await LifeDiaryDraftStore.deleteIn(transaction, entry.entryDate);
     }
+  }
+
+  Future<String?> findAuthorAccountId(String entryId) async {
+    final rows = await database.query(
+      'life_diary_entry_author_account',
+      columns: const ['account_id'],
+      where: 'entry_id = ?',
+      whereArgs: [entryId],
+      limit: 1,
+    );
+    return rows.isEmpty ? null : rows.single['account_id'] as String;
   }
 
   @override

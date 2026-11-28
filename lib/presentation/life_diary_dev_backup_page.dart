@@ -10,11 +10,47 @@ import '../application/life_diary_dev_login.dart';
 import '../data/life_diary_database.dart';
 import '../data/life_diary_entry_factory.dart';
 import '../data/sqlite_life_diary_repository.dart';
+import '../domain/life_diary_models.dart';
 import 'life_diary_history_page.dart';
+
+/// Keeps an ambiguous upload retry on the same ID for the app process.
+class LifeDiarySelectedBackupAttempt {
+  LifeDiaryAuthSession? _session;
+  int? _generation;
+  PreparedLifeDiaryBackup? _prepared;
+  bool _uploaded = false;
+}
 
 /// Isolated debug flow using the real entry model, repository and history page.
 class LifeDiaryDevBackupPage extends StatefulWidget {
-  const LifeDiaryDevBackupPage({super.key, required this.session});
+  const LifeDiaryDevBackupPage({super.key, required this.session})
+    : _selection = null;
+
+  const LifeDiaryDevBackupPage.selected({
+    super.key,
+    required this.session,
+    required LifeDiaryAuthSession selectedSession,
+    required SqliteLifeDiaryRepository selectedRepository,
+    required LifeDiaryEntry selectedEntry,
+    required LifeDiarySelectedBackupAttempt selectedAttempt,
+  }) : _selection = (
+         session: selectedSession,
+         repository: selectedRepository,
+         entry: selectedEntry,
+         attempt: selectedAttempt,
+       );
+
+  static const selectedEnabled =
+      kDebugMode &&
+      bool.fromEnvironment('LIFE_DIARY_DEV_SELECTED_BACKUP') &&
+      !bool.fromEnvironment('LIFE_DIARY_BACKUP_RESTORE_ONLY');
+
+  final ({
+    LifeDiaryAuthSession session,
+    SqliteLifeDiaryRepository repository,
+    LifeDiaryEntry entry,
+    LifeDiarySelectedBackupAttempt attempt,
+  })? _selection;
 
   final LifeDiaryAuthSession? Function() session;
 
@@ -38,9 +74,11 @@ class _LifeDiaryDevBackupPageState extends State<LifeDiaryDevBackupPage> {
   late final Future<SqliteLifeDiaryRepository> _repository = _open();
   late final String _account = widget.session()?.accountId ?? '';
   bool _busy = false;
+  bool _confirmedLocalEntry = false;
   int? _generation;
   PreparedLifeDiaryBackup? _prepared;
-  String _status = '합성 일기를 백업하거나 복구 코드를 입력하세요.';
+  static const _initialStatus = '합성 일기를 백업하거나 복구 코드를 입력하세요.';
+  String _status = _initialStatus;
 
   Future<SqliteLifeDiaryRepository> _open() async {
     if (!kDebugMode) {
@@ -62,9 +100,40 @@ class _LifeDiaryDevBackupPageState extends State<LifeDiaryDevBackupPage> {
         await LifeDiaryDatabase.createV001(db);
         await LifeDiaryDatabase.createV002(db);
         await LifeDiaryDatabase.createV003(db);
+        await LifeDiaryDatabase.createV004(db);
+      },
+      onUpgrade: (db, oldVersion, _) async {
+        if (oldVersion < 4) await LifeDiaryDatabase.createV004(db);
       },
     );
     return SqliteLifeDiaryRepository(db);
+  }
+
+  LifeDiaryAuthSession _requireSession() {
+    final session = widget.session();
+    final selection = widget._selection;
+    if (!mounted ||
+        session == null ||
+        session.accountId != _account ||
+        (selection != null &&
+            (!LifeDiaryDevBackupPage.selectedEnabled ||
+                !identical(session, selection.session) ||
+                (selection.attempt._session != null &&
+                    !identical(session, selection.attempt._session))))) {
+      throw StateError('Session unavailable');
+    }
+    return session;
+  }
+
+  Future<void> _requireSelectedAuthor(LifeDiaryAuthSession session) async {
+    final selection = widget._selection;
+    if (selection == null) return;
+    final author = await selection.repository.findAuthorAccountId(
+      selection.entry.entryId,
+    );
+    if (author != session.accountId) {
+      throw const _BackupAuthorMismatch();
+    }
   }
 
   Future<Map<String, Object?>> _request(
@@ -73,13 +142,19 @@ class _LifeDiaryDevBackupPageState extends State<LifeDiaryDevBackupPage> {
     Set<int> expected, {
     Map<String, Object>? body,
   }) async {
-    final session = widget.session();
-    if (session == null || session.accountId != _account) {
-      throw StateError('Session unavailable');
-    }
+    final session = _requireSession();
     final request = await _client
         .openUrl(method, Uri.parse('$_base$path'))
         .timeout(_timeout);
+    try {
+      await _requireSelectedAuthor(session);
+      if (!identical(_requireSession(), session)) {
+        throw StateError('Session changed');
+      }
+    } catch (_) {
+      request.abort();
+      rethrow;
+    }
     request.followRedirects = false;
     request.headers.set(
       HttpHeaders.authorizationHeader,
@@ -97,6 +172,7 @@ class _LifeDiaryDevBackupPageState extends State<LifeDiaryDevBackupPage> {
     if (!expected.contains(response.statusCode)) {
       throw HttpException('HTTP ${response.statusCode}');
     }
+    if (widget._selection != null) _requireSession();
     return text.isEmpty ? {} : jsonDecode(text) as Map<String, Object?>;
   }
 
@@ -131,6 +207,53 @@ class _LifeDiaryDevBackupPageState extends State<LifeDiaryDevBackupPage> {
     return '완료 일기 백업 성공 · 복구 코드를 보관하세요.';
   }
 
+  Future<String> _backupSelected() async {
+    final selection = widget._selection!;
+    final attempt = selection.attempt;
+    final session = _requireSession();
+    if (!_confirmedLocalEntry) {
+      throw StateError('Local entry confirmation required');
+    }
+    if (attempt._uploaded) return '이미 이 일기를 백업했습니다.';
+
+    final entry = await selection.repository.findById(selection.entry.entryId);
+    if (entry == null ||
+        entry.ownerUserId != selection.entry.ownerUserId ||
+        entry.status != LifeDiaryEntryStatus.completed) {
+      return '선택한 완료 일기를 찾을 수 없습니다.';
+    }
+    _requireSession();
+    await _requireSelectedAuthor(session);
+    _requireSession();
+
+    if (attempt._prepared == null) {
+      attempt._session = session;
+      if (attempt._generation == null) {
+        final consent = await _request('POST', '/consent', {200});
+        attempt._generation = consent['generation'] as int;
+      }
+      final prepared = await LifeDiaryCompletedBackup(selection.repository)
+          .prepare(
+            entryId: selection.entry.entryId,
+            localOwnerId: selection.entry.ownerUserId,
+            accountId: session.accountId,
+            generation: attempt._generation!,
+          );
+      _requireSession();
+      attempt._prepared = prepared;
+    }
+
+    final prepared = attempt._prepared!;
+    await _request(
+      'PUT',
+      '/entries/${prepared.generation}/${prepared.backupId}',
+      {200, 201},
+      body: prepared.toRequestBody(),
+    );
+    attempt._uploaded = true;
+    return '완료 일기 백업 성공 · 복구 코드를 보관하세요.';
+  }
+
   Future<String> _restore() async {
     final reference = LifeDiaryBackupReference.parse(_code.text);
     final payload = await _request(
@@ -157,11 +280,18 @@ class _LifeDiaryDevBackupPageState extends State<LifeDiaryDevBackupPage> {
   }
 
   Future<void> _run(Future<String> Function() operation) async {
+    if (_busy) return;
     setState(() => _busy = true);
     try {
       _status = await operation();
     } on HttpException catch (error) {
       _status = '요청 실패 · ${error.message}';
+    } on _BackupAuthorMismatch {
+      _status = '작성할 때 연결한 계정으로만 백업할 수 있습니다.';
+    } on StateError {
+      _status = widget._selection == null
+          ? '백업 또는 복구 실패 · 로그인 상태를 확인하세요.'
+          : '백업을 완료하지 못했습니다. 로그인 세션과 완료 일기를 확인하세요.';
     } on FormatException {
       _status = '복구 코드 형식을 확인하세요.';
     } catch (_) {
@@ -175,15 +305,85 @@ class _LifeDiaryDevBackupPageState extends State<LifeDiaryDevBackupPage> {
   void dispose() {
     _code.dispose();
     _client.close(force: true);
-    _repository.then<void>(
-      (repository) => repository.close(),
-      onError: (Object _) {},
-    );
+    if (widget._selection == null) {
+      _repository.then<void>(
+        (repository) => repository.close(),
+        onError: (Object _) {},
+      );
+    }
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) => PopScope(
+  Widget build(BuildContext context) {
+    final selection = widget._selection;
+    if (selection != null) {
+      return _buildSelected(selection.entry, selection.attempt);
+    }
+    return _buildRehearsal();
+  }
+
+  Widget _buildSelected(
+    LifeDiaryEntry entry,
+    LifeDiarySelectedBackupAttempt attempt,
+  ) {
+    final session = widget.session();
+    final prepared = attempt._prepared;
+    final accountId = widget._selection!.session.accountId;
+    final accountLabel = accountId.length <= 8
+        ? accountId
+        : '…${accountId.substring(accountId.length - 8)}';
+    final date = MaterialLocalizations.of(context).formatFullDate(entry.entryDate);
+    final active = identical(session, widget._selection!.session) &&
+        (attempt._session == null || identical(session, attempt._session));
+    return PopScope(
+      canPop: !_busy,
+      child: Scaffold(
+        appBar: AppBar(title: const Text('선택한 완료 일기 백업')),
+        body: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            Text(date),
+            Text('시즌 ${entry.seasonNumber} · ${entry.sessionNumber}회'),
+            if (active) Text('개발 계정 ID $accountLabel'),
+            const Text('개발 시험용 합성 일기만 사용하세요.'),
+            const Text('동의하면 이 일기 한 건을 암호화하여 개발 서버에 보냅니다.'),
+            const Text('복구 코드를 잃으면 이 백업을 열 수 없습니다.'),
+            const SizedBox(height: 12),
+            if (active && !attempt._uploaded)
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('제가 작성한 시험 일기이며 위 계정에 백업합니다.'),
+                value: _confirmedLocalEntry,
+                onChanged: _busy
+                    ? null
+                    : (value) => setState(() {
+                        _confirmedLocalEntry = value ?? false;
+                      }),
+              ),
+            if (!active)
+              const Text('로그인 세션이 바뀌었거나 만료되었습니다.')
+            else if (attempt._uploaded)
+              const Text('이 일기는 백업되었습니다. 복구 코드를 보관하세요.')
+            else if (_busy)
+              const Text('백업 처리 중입니다.')
+            else if (_status != _initialStatus)
+              Text(_status),
+            if (active && prepared != null)
+              SelectableText(prepared.recoveryCode),
+            FilledButton(
+              onPressed: !active || !_confirmedLocalEntry || _busy || attempt._uploaded
+                  ? null
+                  : () => _run(_backupSelected),
+              child: const Text('동의하고 이 일기 백업'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRehearsal() => PopScope(
     canPop: !_busy,
     child: Scaffold(
       appBar: AppBar(title: const Text('완료 일기 백업 검증')),
@@ -218,7 +418,7 @@ class _LifeDiaryDevBackupPageState extends State<LifeDiaryDevBackupPage> {
                 : () async {
                     await _run(() async {
                       final repository = await _repository;
-                      if (!context.mounted) return '';
+                      if (!mounted) return '';
                       await Navigator.of(context).push(
                         MaterialPageRoute<void>(
                           builder: (_) => LifeDiaryHistoryPage(
@@ -247,4 +447,8 @@ class _LifeDiaryDevBackupPageState extends State<LifeDiaryDevBackupPage> {
       ),
     ),
   );
+}
+
+class _BackupAuthorMismatch implements Exception {
+  const _BackupAuthorMismatch();
 }

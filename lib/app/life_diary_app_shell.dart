@@ -354,10 +354,72 @@ class ChgoLifeDiaryApp extends StatelessWidget {
 // Start Page
 // ============================================================
 
-class LifeDiaryStartPage extends StatelessWidget {
+class LifeDiaryStartPage extends StatefulWidget {
   const LifeDiaryStartPage({super.key, this.devLoginClient});
 
   final LifeDiaryAuthClient? devLoginClient;
+
+  @override
+  State<LifeDiaryStartPage> createState() => _LifeDiaryStartPageState();
+}
+
+class _LifeDiaryStartPageState extends State<LifeDiaryStartPage> {
+  final _devAuthKey = GlobalKey<DevAuthPageState>();
+  final _backupAttempts = <String, LifeDiarySelectedBackupAttempt>{};
+
+  LifeDiaryAuthSession? _activeSession() =>
+      _devAuthKey.currentState?.activeSession;
+
+  Future<void> _openSelectedBackup(
+    BuildContext context,
+    LifeDiaryEntry entry,
+  ) async {
+    final repository = lifeDiaryRepository;
+    final session = _activeSession();
+    if (session == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('홈에서 개발 계정으로 로그인한 뒤 다시 열어 주세요.')),
+      );
+      return;
+    }
+    if (repository is! SqliteLifeDiaryRepository ||
+        entry.ownerUserId != lifeDiaryEntryFactory.ownerUserId) {
+      return;
+    }
+    String? authorAccountId;
+    try {
+      authorAccountId = await repository.findAuthorAccountId(entry.entryId);
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('일기의 작성 계정을 확인하지 못했습니다.')),
+      );
+      return;
+    }
+    if (!context.mounted) return;
+    if (!identical(_activeSession(), session) ||
+        authorAccountId != session.accountId) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('작성할 때 연결한 계정으로만 백업할 수 있습니다.')),
+      );
+      return;
+    }
+    final attempt = _backupAttempts.putIfAbsent(
+      entry.entryId,
+      LifeDiarySelectedBackupAttempt.new,
+    );
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => LifeDiaryDevBackupPage.selected(
+          session: _activeSession,
+          selectedSession: session,
+          selectedRepository: repository,
+          selectedEntry: entry,
+          selectedAttempt: attempt,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -379,9 +441,10 @@ class LifeDiaryStartPage extends StatelessWidget {
                       child: Padding(
                         padding: const EdgeInsets.all(16),
                         child: DevAuthPage(
+                          key: _devAuthKey,
                           embedded: true,
                           accountMode: DevAuthPage.oneApi,
-                          client: devLoginClient,
+                          client: widget.devLoginClient,
                         ),
                       ),
                     ),
@@ -435,7 +498,9 @@ class LifeDiaryStartPage extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const LifeDiaryDatePage(),
+                          builder: (_) => LifeDiaryDatePage(
+                            activeAccountId: () => _activeSession()?.accountId,
+                          ),
                         ),
                       );
                     },
@@ -460,6 +525,14 @@ class LifeDiaryStartPage extends StatelessWidget {
                             repository: lifeDiaryRepository,
                             ownerUserId: lifeDiaryEntryFactory.ownerUserId,
                             logger: lifeDiaryLogger,
+                            onBackup: LifeDiaryDevBackupPage.selectedEnabled &&
+                                    LifeDiaryDevLogin.enabled &&
+                                    DevAuthPage.oneApi &&
+                                    DevAuthPage.completedBackup &&
+                                    !kIsWeb &&
+                                    defaultTargetPlatform == TargetPlatform.android
+                                ? _openSelectedBackup
+                                : null,
                           ),
                         ),
                       );
@@ -518,7 +591,9 @@ class LifeDiaryStartPage extends StatelessWidget {
 // ============================================================
 
 class LifeDiaryDatePage extends StatefulWidget {
-  const LifeDiaryDatePage({super.key});
+  const LifeDiaryDatePage({super.key, this.activeAccountId});
+
+  final String? Function()? activeAccountId;
 
   @override
   State<LifeDiaryDatePage> createState() => _LifeDiaryDatePageState();
@@ -664,6 +739,8 @@ class _LifeDiaryDatePageState extends State<LifeDiaryDatePage> {
               height: 56,
               child: FilledButton(
                 onPressed: () async {
+                  final activeAccountId = widget.activeAccountId;
+                  final accountAtStart = activeAccountId?.call();
                   final restored = await restoreLifeDiaryDraft(selectedDate);
                   final action = _draftLifecycle.restoredDraftAction(
                     restored: restored,
@@ -679,6 +756,9 @@ class _LifeDiaryDatePageState extends State<LifeDiaryDatePage> {
                         season: _progress.seasonNumber,
                         session: _progress.sessionNumber,
                       );
+                      if (accountAtStart == activeAccountId?.call()) {
+                        currentLifeDiaryDraft.authorAccountId = accountAtStart;
+                      }
                     case RestoredDraftAction.keepRenumbered:
                       // Keep the written reflections; only the number moves.
                       currentLifeDiaryDraft
